@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎓 Arshaka Edu — Platform Simulasi Interaktif Edukatif
 
-## Getting Started
+> Platform simulasi pembelajaran interaktif berbasis web, gratis, dan dapat diakses oleh semua kalangan — dari SD hingga Perguruan Tinggi.
 
-First, run the development server:
+---
+
+## 📌 Deskripsi Proyek
+
+**Arshaka Edu** adalah platform edukasi berbasis web yang menyediakan simulasi interaktif untuk berbagai mata pelajaran. Terinspirasi dari PhET Interactive Simulations, platform ini dikembangkan untuk membantu siswa, guru, dan masyarakat umum memahami konsep-konsep pembelajaran secara visual dan menyenangkan.
+
+---
+
+## 🎯 Tujuan
+
+- Menyediakan media pembelajaran interaktif yang **gratis dan terbuka**
+- Membantu siswa memahami konsep abstrak melalui **visualisasi dan simulasi**
+- Mendukung guru dalam **menyampaikan materi** dengan cara yang lebih menarik
+- Dapat diakses oleh **semua jenjang pendidikan** (SD, SMP, SMA, Kuliah, Umum)
+- Mendukung **Bahasa Indonesia** sebagai bahasa utama
+
+---
+
+## 📚 Daftar Mata Pelajaran & Simulasi
+
+### 🔬 1. Fisika
+| Simulasi | Deskripsi | Jenjang |
+|----------|-----------|---------|
+| Gelombang pada Tali | Visualisasi gelombang transversal | SMP–SMA |
+| Rangkaian Listrik | Buat & uji rangkaian seri dan paralel | SMA–Kuliah |
+| Gravitasi & Orbit | Simulasi gaya gravitasi antar planet | SMA–Kuliah |
+| Gerak Proyektil | Analisis lintasan benda yang dilempar | SMA |
+| Hukum Newton | Simulasi gaya, massa, dan percepatan | SMP–SMA |
+| Optik & Lensa | Pembiasan dan pemantulan cahaya | SMA–Kuliah |
+| Termodinamika | Simulasi suhu, tekanan, dan volume gas | SMA–Kuliah |
+| Medan Magnet | Visualisasi medan magnet dan induksi | SMA–Kuliah |
+
+---
+
+### ⚗️ 2. Kimia
+| Simulasi | Deskripsi | Jenjang |
+|----------|-----------|---------|
+| Penyeimbangan Persamaan | Setarakan reaksi kimia secara interaktif | SMP–SMA |
+| Tabel Periodik Interaktif | Eksplorasi unsur-unsur kimia | SMP–Kuliah |
+| Asam & Basa | Simulasi pH larutan | SMA |
+| Reaksi Kimia | Lihat reaksi antar zat secara visual | SMA–Kuliah |
+| Struktur Atom | Visualisasi proton, neutron, elektron | SMP–SMA |
+| Ikatan Kimia | Simulasi ikatan ion dan kovalen | SMA–Kuliah |
+
+---
+
+### 🧮 3. Matematika
+| Simulasi | Deskripsi | Jenjang |
+|----------|-----------|---------|
+| Grafik Fungsi | Plot berbagai jenis fungsi matematika | SMP–Kuliah |
+| Geometri Interaktif | Bangun datar dan ruang | SD–SMA |
+| Kalkulus Visual | Turunan dan integral secara visual | SMA–Kuliah |
+| Statistik & Probabilitas | Simulasi data dan peluang | SMP–Kuliah |
+| Matriks & Transformasi | Operasi matriks dan rotasi vektor | SMA–Kuliah |
+| Aljabar Linear | Sistem persamaan linear | SMA–Kuliah |
+| Trigonometri | Lingkaran satuan dan grafik sin/cos/tan | SMA |
+
+---
+
+## 🧩 Fitur Platform
+
+### Umum
+- ✅ Gratis dan open source
+- ✅ Berbahasa Indonesia (dengan opsi multibahasa)
+- ✅ Responsif untuk desktop, tablet, dan HP
+- ✅ Tidak perlu instalasi — langsung di browser
+- ✅ Mode terang & gelap
+- 🔓 **Tanpa login** — semua simulasi dapat langsung digunakan tanpa perlu mendaftar atau masuk akun
+- 💡 **Login disarankan** (opsional) untuk menyimpan progres belajar, riwayat simulasi, badge, dan preferensi pengguna
+
+---
+
+## 🛠️ Teknologi yang Digunakan
+
+| Komponen | Teknologi |
+|----------|-----------|
+| Frontend | React.js (Next.js) |
+| Animasi & Simulasi | Canvas API, Three.js, p5.js |
+| Backend | Node.js / Next.js API Routes |
+| Database | PostgreSQL (Prisma/Drizzle) |
+| Auth | NextAuth.js (OAuth Google & GitHub) |
+| Styling | Tailwind CSS |
+
+---
+
+## 🚀 Cara Menjalankan (Development)
 
 ```bash
+# Clone repositori
+git clone https://github.com/username/arshaka_edu.git
+cd arshaka_edu
+
+# Install dependensi
+npm install
+
+# Jalankan development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📄 Lisensi
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Proyek ini dilisensikan di bawah **MIT License** — bebas digunakan, dimodifikasi, dan didistribusikan dengan menyertakan atribusi.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📬 Kontak & Komunitas
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 🌐 Website: [arshakaedu.id](https://arshakaedu.id)
+- 📧 Email: halo@arshakaedu.id
