@@ -1,36 +1,90 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Play } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronLeft, Zap, Move, ShieldAlert, Timer, Ruler, Droplets, Waves, Gauge, Thermometer, Box, Activity, ChevronRight, Flame, Settings, Share2, Lock, Unlock, Magnet, Target, Sparkles, Battery, Lightbulb, RefreshCcw, Sun, Filter, Microscope, Radio } from "lucide-react";
+import Link from "next/link";
+
+interface Nucleon {
+  x: number;
+  y: number;
+  type: "proton" | "neutron";
+  vx: number;
+  vy: number;
+}
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  type: string;
+  label?: string;
+  color: string;
+  radius: number;
+  nucleons?: Nucleon[];
+}
 
 export default function FisiFusiNuklir() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isRunning, setIsRunning] = useState(true);
+  const [mode, setMode] = useState<"fisi" | "fusi">("fisi");
+  const [stage, setStage] = useState<"idle" | "collision" | "result">("idle");
   
-  const [mode, setMode] = useState<"fission" | "fusion">("fission");
-  const [trigger, setTrigger] = useState(0);
+  const entitiesRef = useRef<Particle[]>([]);
+  const effectsRef = useRef<{x: number, y: number, r: number, alpha: number}[]>([]);
+  const animationRef = useRef(0);
+  const timeRef = useRef(0);
 
-  // Fission: Neutron hits Uranium-235 -> Ba + Kr + 3 Neutrons + Energy
-  // Fusion: Deuterium + Tritium -> Helium + Neutron + Energy
+  const createNucleus = (x: number, y: number, pCount: number, nCount: number, radius: number): Nucleon[] => {
+     const nucleons: Nucleon[] = [];
+     for (let i = 0; i < pCount + nCount; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const r = Math.random() * radius;
+        nucleons.push({
+           x: Math.cos(ang) * r,
+           y: Math.sin(ang) * r,
+           type: i < pCount ? "proton" : "neutron",
+           vx: (Math.random() - 0.5) * 0.5,
+           vy: (Math.random() - 0.5) * 0.5
+        });
+     }
+     return nucleons;
+  };
 
-  const entitiesRef = useRef<any[]>([]);
+  const initSimulation = () => {
+    const cx = (window.innerWidth - (window.innerWidth >= 1024 ? 320 : 0)) / 2;
+    const cy = window.innerHeight / 2;
+    setStage("idle");
+    entitiesRef.current = [];
+    effectsRef.current = [];
+
+    if (mode === "fisi") {
+       // Target U-235
+       entitiesRef.current.push({
+          x: cx, y: cy, vx: 0, vy: 0, type: "target", label: "U-235", radius: 50, color: "#ef4444",
+          nucleons: createNucleus(0, 0, 15, 20, 45) // Representative subset
+       });
+       // Incoming Neutron
+       entitiesRef.current.push({
+          x: cx - 400, y: cy, vx: 5, vy: 0, type: "neutron_in", label: "n", radius: 8, color: "#94a3b8"
+       });
+    } else {
+       // Deuterium
+       entitiesRef.current.push({
+          x: cx - 200, y: cy, vx: 0, vy: 0, type: "deut", label: "D", radius: 25, color: "#38bdf8",
+          nucleons: createNucleus(0, 0, 1, 1, 20)
+       });
+       // Tritium
+       entitiesRef.current.push({
+          x: cx + 200, y: cy, vx: 0, vy: 0, type: "trit", label: "T", radius: 30, color: "#06b6d4",
+          nucleons: createNucleus(0, 0, 1, 2, 25)
+       });
+    }
+  };
 
   useEffect(() => {
-    // Reset entities
-    entitiesRef.current = [];
-    const cx = 200; // rough middle
-    const cy = 150;
-    
-    if (mode === "fission") {
-      // Big U-235 nucleus at center
-      entitiesRef.current.push({ type: "U235", x: cx, y: cy, vx: 0, vy: 0, active: true });
-      // Incoming Neutron
-      entitiesRef.current.push({ type: "Neutron_In", x: 10, y: cy, vx: 4, vy: 0, active: true });
-    } else {
-      // Deuterium and Tritium moving towards each other
-      entitiesRef.current.push({ type: "Deuterium", x: cx - 100, y: cy, vx: 2, vy: 0, active: true });
-      entitiesRef.current.push({ type: "Tritium", x: cx + 100, y: cy, vx: -2, vy: 0, active: true });
-    }
-  }, [mode, trigger]);
+    initSimulation();
+  }, [mode]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -38,144 +92,240 @@ export default function FisiFusiNuklir() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let animationId: number;
-
     const render = () => {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const ents = entitiesRef.current;
+      const sidebarWidth = window.innerWidth >= 1024 ? 320 : 0;
+      const arenaW = canvas.width - sidebarWidth;
+      const arenaH = canvas.height;
+      const cx = arenaW / 2;
+      const cy = arenaH / 2;
 
-      // Logic
-      if (mode === "fission") {
-        const u235 = ents.find(e => e.type === "U235");
-        const nIn = ents.find(e => e.type === "Neutron_In");
+      if (isRunning) timeRef.current += 0.02;
+      const t = timeRef.current;
 
-        if (u235 && nIn && nIn.active && u235.active) {
-          // Collision check
-          if (Math.abs(nIn.x - u235.x) < 20) {
-            nIn.active = false;
-            u235.active = false; // Splitting!
-            
-            // Create products
-            ents.push({ type: "Barium", x: u235.x, y: u235.y, vx: -2, vy: -3, active: true });
-            ents.push({ type: "Krypton", x: u235.x, y: u235.y, vx: 2, vy: 3, active: true });
-            ents.push({ type: "Neutron_Out", x: u235.x, y: u235.y, vx: 5, vy: 0, active: true });
-            ents.push({ type: "Neutron_Out", x: u235.x, y: u235.y, vx: 4, vy: 4, active: true });
-            ents.push({ type: "Neutron_Out", x: u235.x, y: u235.y, vx: 4, vy: -4, active: true });
-            ents.push({ type: "Energy", x: u235.x, y: u235.y, radius: 10, active: true });
-          }
-        }
-      } else {
-        // Fusion
-        const deut = ents.find(e => e.type === "Deuterium");
-        const trit = ents.find(e => e.type === "Tritium");
-
-        if (deut && trit && deut.active && trit.active) {
-          if (Math.abs(deut.x - trit.x) < 20) {
-            deut.active = false;
-            trit.active = false;
-
-            // Products
-            ents.push({ type: "Helium", x: deut.x, y: deut.y, vx: 0, vy: 2, active: true });
-            ents.push({ type: "Neutron_Out", x: deut.x, y: deut.y, vx: 0, vy: -5, active: true });
-            ents.push({ type: "Energy", x: deut.x, y: deut.y, radius: 10, active: true });
-          }
-        }
-      }
-
-      // Draw and update
-      ents.forEach(e => {
-        if (!e.active) return;
-        
-        if (e.vx !== undefined) e.x += e.vx;
-        if (e.vy !== undefined) e.y += e.vy;
-
-        ctx.beginPath();
-        if (e.type.includes("Neutron")) {
-          ctx.arc(e.x, e.y, 5, 0, Math.PI*2); ctx.fillStyle = "#94a3b8"; ctx.fill();
-        } else if (e.type === "U235") {
-          ctx.arc(e.x, e.y, 25, 0, Math.PI*2); ctx.fillStyle = "#ef4444"; ctx.fill();
-          ctx.fillStyle="white"; ctx.font="10px sans-serif"; ctx.fillText("U-235", e.x-15, e.y+3);
-        } else if (e.type === "Barium") {
-          ctx.arc(e.x, e.y, 18, 0, Math.PI*2); ctx.fillStyle = "#f59e0b"; ctx.fill();
-          ctx.fillStyle="white"; ctx.fillText("Ba", e.x-7, e.y+3);
-        } else if (e.type === "Krypton") {
-          ctx.arc(e.x, e.y, 15, 0, Math.PI*2); ctx.fillStyle = "#8b5cf6"; ctx.fill();
-          ctx.fillStyle="white"; ctx.fillText("Kr", e.x-6, e.y+3);
-        } else if (e.type === "Deuterium") {
-          ctx.arc(e.x, e.y, 15, 0, Math.PI*2); ctx.fillStyle = "#3b82f6"; ctx.fill();
-          ctx.fillStyle="white"; ctx.fillText("D(2)", e.x-10, e.y+3);
-        } else if (e.type === "Tritium") {
-          ctx.arc(e.x, e.y, 18, 0, Math.PI*2); ctx.fillStyle = "#06b6d4"; ctx.fill();
-          ctx.fillStyle="white"; ctx.fillText("T(3)", e.x-10, e.y+3);
-        } else if (e.type === "Helium") {
-          ctx.arc(e.x, e.y, 20, 0, Math.PI*2); ctx.fillStyle = "#22c55e"; ctx.fill();
-          ctx.fillStyle="white"; ctx.fillText("He(4)", e.x-12, e.y+3);
-        } else if (e.type === "Energy") {
-          e.radius += 2;
-          ctx.arc(e.x, e.y, e.radius, 0, Math.PI*2);
-          ctx.fillStyle = `rgba(250, 204, 21, ${Math.max(0, 1 - e.radius/100)})`;
-          ctx.fill();
-          if (e.radius < 50) {
-            ctx.fillStyle = "white"; ctx.font="bold 20px sans-serif"; ctx.fillText("ENERGI!", e.x-30, e.y);
-          }
-        }
+      // Update & Draw Effects
+      effectsRef.current = effectsRef.current.filter(e => {
+         e.r += 10;
+         e.alpha -= 0.02;
+         ctx.save();
+         ctx.shadowBlur = 40; ctx.shadowColor = "white";
+         ctx.strokeStyle = `rgba(255, 255, 255, ${e.alpha})`;
+         ctx.lineWidth = 5;
+         ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.stroke();
+         ctx.restore();
+         return e.alpha > 0;
       });
 
-      animationId = requestAnimationFrame(render);
+      // Update Entities
+      entitiesRef.current.forEach(e => {
+         e.x += e.vx;
+         e.y += e.vy;
+
+         // Collision Detection
+         if (stage === "idle") {
+            if (mode === "fisi" && e.type === "neutron_in") {
+               const target = entitiesRef.current.find(ent => ent.type === "target");
+               if (target && Math.abs(e.x - target.x) < target.radius) {
+                  setStage("collision");
+                  e.vx = 0; target.vx = 0;
+                  // Start Split logic
+                  setTimeout(() => {
+                     setStage("result");
+                     effectsRef.current.push({ x: target.x, y: target.y, r: 10, alpha: 1 });
+                     entitiesRef.current = entitiesRef.current.filter(ent => ent.type !== "target" && ent.type !== "neutron_in");
+                     // Fragment 1
+                     entitiesRef.current.push({
+                        x: target.x, y: target.y, vx: -3, vy: -2, type: "frag", label: "Ba", radius: 35, color: "#f59e0b",
+                        nucleons: createNucleus(0, 0, 8, 10, 30)
+                     });
+                     // Fragment 2
+                     entitiesRef.current.push({
+                        x: target.x, y: target.y, vx: 3, vy: 2, type: "frag", label: "Kr", radius: 30, color: "#8b5cf6",
+                        nucleons: createNucleus(0, 0, 7, 8, 25)
+                     });
+                     // Extra Neutrons
+                     for (let i = 0; i < 3; i++) {
+                        const ang = (Math.random() - 0.5) * Math.PI;
+                        entitiesRef.current.push({
+                           x: target.x, y: target.y, vx: Math.cos(ang) * 6, vy: Math.sin(ang) * 6, type: "neutron_out", radius: 5, color: "#94a3b8"
+                        });
+                     }
+                  }, 1000);
+               }
+            }
+            if (mode === "fusi" && (e.type === "deut" || e.type === "trit")) {
+               // Only if moving
+               const other = entitiesRef.current.find(ent => ent.type !== e.type && (ent.type === "deut" || ent.type === "trit"));
+               if (other && Math.abs(e.x - other.x) < (e.radius + other.radius)) {
+                  setStage("collision");
+                  e.vx = 0; other.vx = 0;
+                  setTimeout(() => {
+                     setStage("result");
+                     effectsRef.current.push({ x: cx, y: cy, r: 10, alpha: 1 });
+                     entitiesRef.current = [];
+                     // Helium
+                     entitiesRef.current.push({
+                        x: cx, y: cy, vx: 0, vy: 2, type: "helium", label: "He-4", radius: 35, color: "#22c55e",
+                        nucleons: createNucleus(0, 0, 2, 2, 30)
+                     });
+                     // Neutron
+                     entitiesRef.current.push({
+                        x: cx, y: cy, vx: 0, vy: -8, type: "neutron_out", label: "n", radius: 8, color: "#94a3b8"
+                     });
+                  }, 1200);
+               }
+            }
+         }
+
+         // Draw Nucleus / Particle
+         ctx.save();
+         ctx.translate(e.x, e.y);
+         
+         // Wobble if in collision
+         if (stage === "collision") {
+            ctx.translate((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5);
+         }
+
+         // Draw Nucleons
+         if (e.nucleons) {
+            e.nucleons.forEach(n => {
+               n.x += n.vx; n.y += n.vy;
+               // Bounce inside radius
+               const dist = Math.sqrt(n.x*n.x + n.y*n.y);
+               if (dist > e.radius - 8) { n.vx *= -1; n.vy *= -1; }
+
+               ctx.fillStyle = n.type === "proton" ? "#ef4444" : "#71717a";
+               ctx.shadowBlur = 5; ctx.shadowColor = ctx.fillStyle as string;
+               ctx.beginPath(); ctx.arc(n.x, n.y, 6, 0, Math.PI * 2); ctx.fill();
+            });
+         } else {
+            // Simple Particle
+            ctx.fillStyle = e.color;
+            ctx.shadowBlur = 10; ctx.shadowColor = e.color;
+            ctx.beginPath(); ctx.arc(0, 0, e.radius, 0, Math.PI * 2); ctx.fill();
+         }
+
+         // Label
+         if (e.label) {
+            ctx.fillStyle = "white";
+            ctx.font = "bold 10px Inter"; ctx.textAlign = "center";
+            ctx.fillText(e.label, 0, e.radius + 15);
+         }
+         ctx.restore();
+      });
+
+      // Labels
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.font = "bold 9px Inter"; ctx.textAlign = "center";
+      ctx.fillText(mode === "fisi" ? "PROSES PEMBELAHAN INTI (FISI)" : "PROSES PENGGABUNGAN INTI (FUSI)", cx, 100);
     };
 
-    render();
-    return () => cancelAnimationFrame(animationId);
-  }, [mode, trigger]);
+    const animate = () => { render(); animationRef.current = requestAnimationFrame(animate); };
+    animationRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [isRunning, mode, stage]);
+
+  const triggerReaction = () => {
+    if (stage !== "idle") return;
+    if (mode === "fisi") {
+       // Neutron move logic is already in update if vx > 0
+    } else {
+       const deut = entitiesRef.current.find(e => e.type === "deut");
+       const trit = entitiesRef.current.find(e => e.type === "trit");
+       if (deut && trit) {
+          deut.vx = 2.5;
+          trit.vx = -2.5;
+       }
+    }
+  };
 
   return (
-    <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
-      <div className="flex-1 relative flex items-center justify-center bg-zinc-950 min-h-[50vh] lg:min-h-0">
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+    <div className="fixed inset-0 bg-zinc-950 flex flex-col lg:flex-row overflow-hidden font-sans select-none touch-none text-white">
+      <canvas ref={canvasRef} className="absolute inset-0 z-0" />
+
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 h-16 px-6 flex items-center justify-between z-30 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
+        <div className="flex items-center gap-4 pointer-events-auto">
+          <Link href="/simulasi" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 text-white transition-all">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex flex-col">
+             <h1 className="text-lg font-bold text-white tracking-tight leading-none">Fisi & Fusi Nuklir</h1>
+             <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-[0.2em] mt-1">Energi Nuklir • Reaksi Berantai • Bintang</span>
+          </div>
+        </div>
       </div>
 
-      <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 glass-card flex flex-col h-full z-10">
-        <div className="p-4 border-b border-white/10"><h3 className="font-semibold text-white">Fisi & Fusi Nuklir</h3></div>
-        <div className="p-6 flex-1 overflow-y-auto space-y-6">
-          
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <button 
-                onClick={() => {setMode("fission"); setTrigger(t=>t+1);}} 
-                className={`flex-1 py-2 rounded-xl font-bold border text-sm ${mode === 'fission' ? 'bg-red-500/20 border-red-500/50 text-red-400' : 'bg-transparent border-white/10 text-zinc-500 hover:bg-white/5'}`}
-              >
-                Fisi Nuklir
-              </button>
-              <button 
-                onClick={() => {setMode("fusion"); setTrigger(t=>t+1);}} 
-                className={`flex-1 py-2 rounded-xl font-bold border text-sm ${mode === 'fusion' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-transparent border-white/10 text-zinc-500 hover:bg-white/5'}`}
-              >
-                Fusi Nuklir
-              </button>
-            </div>
-            
-            <button onClick={() => setTrigger(t=>t+1)} className="w-full py-3 mt-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors">
-              <Play className="w-4 h-4"/> Mulai Reaksi
-            </button>
-          </div>
+      <div className="flex-1 relative pointer-events-none" />
 
-          <div className="p-4 bg-black/30 rounded-xl border border-white/5 space-y-3 text-xs text-zinc-300 leading-relaxed mt-4">
-            {mode === "fission" ? (
-              <>
-                <p><strong>Fisi Nuklir (Pembelahan Inti):</strong> Terjadi di Reaktor Nuklir & Bom Atom.</p>
-                <p>Sebuah neutron ditembakkan lambat ke inti Uranium-235 yang tidak stabil. Inti membelah menjadi Barium dan Kripton, melepaskan energi besar dan 3 neutron baru (Reaksi Berantai).</p>
-              </>
-            ) : (
-              <>
-                <p><strong>Fusi Nuklir (Penggabungan Inti):</strong> Terjadi di Matahari & Bintang.</p>
-                <p>Dua inti ringan (Deuterium & Tritium) bertabrakan pada suhu ekstrem hingga bergabung menjadi Helium, melepaskan neutron dan energi yang jauh lebih dahsyat dari Fisi.</p>
-              </>
-            )}
-          </div>
+      {/* SIDEBAR PANEL */}
+      <div className="w-full lg:w-80 z-20 flex flex-col bg-zinc-900/50 backdrop-blur-3xl border-l border-white/10 overflow-y-auto custom-scrollbar shadow-2xl">
+        <div className="p-6 space-y-6 pt-20">
+           
+           {/* Mode Selection */}
+           <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => setMode("fisi")} className={`py-4 rounded-2xl text-[9px] font-black uppercase transition-all border flex flex-col items-center gap-2 ${mode === "fisi" ? 'bg-white/10 border-white/30 text-white shadow-lg' : 'bg-transparent border-white/5 text-zinc-600'}`}>
+                 <Radio className={`w-4 h-4 ${mode === "fisi" ? 'text-rose-400' : 'text-zinc-600'}`} />
+                 FISI NUKLIR
+              </button>
+              <button onClick={() => setMode("fusi")} className={`py-4 rounded-2xl text-[9px] font-black uppercase transition-all border flex flex-col items-center gap-2 ${mode === "fusi" ? 'bg-white/10 border-white/30 text-white shadow-lg' : 'bg-transparent border-white/5 text-zinc-600'}`}>
+                 <Sun className={`w-4 h-4 ${mode === "fusi" ? 'text-amber-400' : 'text-zinc-600'}`} />
+                 FUSI NUKLIR
+              </button>
+           </div>
 
+           {/* Reaction Info Card */}
+           <div className="bg-white/5 border border-white/10 p-5 rounded-3xl space-y-4">
+              <div className="flex items-center gap-3">
+                 <div className={`p-2 rounded-lg ${mode === "fisi" ? 'bg-rose-500/20' : 'bg-amber-500/20'}`}>
+                    <Zap className={`w-4 h-4 ${mode === "fisi" ? 'text-rose-400' : 'text-amber-400'}`} />
+                 </div>
+                 <div className="flex flex-col">
+                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">{mode === "fisi" ? "U-235 + n" : "Deuterium + Tritium"}</span>
+                    <span className="text-xs font-black text-white">{mode === "fisi" ? "Reaksi Pembelahan" : "Reaksi Penggabungan"}</span>
+                 </div>
+              </div>
+              <p className="text-[10px] text-zinc-500 leading-relaxed">
+                 {mode === "fisi" ? "Energi dilepaskan saat inti berat terbelah menjadi fragmen yang lebih stabil." : "Energi dahsyat dilepaskan saat dua inti ringan bergabung menjadi Helium di suhu ekstrem."}
+              </p>
+           </div>
+
+           {/* Action Button */}
+           <div className="pt-4">
+              <button 
+                onClick={triggerReaction}
+                disabled={stage !== "idle"}
+                className={`w-full py-4 rounded-2xl font-black text-xs uppercase transition-all flex items-center justify-center gap-3 shadow-xl border border-white/10 ${stage === "idle" ? 'bg-white text-black active:scale-95' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}
+              >
+                 {mode === "fisi" ? <Zap className="w-4 h-4" /> : <Flame className="w-4 h-4" />}
+                 {mode === "fisi" ? "LUNCURKAN NEUTRON" : "MULAI KOMPRESI"}
+              </button>
+           </div>
+
+           {/* Physics Insight */}
+           <div className="p-5 bg-black/30 rounded-2xl border border-white/5 space-y-4 shadow-xl">
+              <div className="flex items-center gap-2">
+                 <ShieldAlert className="w-4 h-4 text-amber-400" />
+                 <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">Wawasan Fisika</span>
+              </div>
+              <div className="space-y-3 text-[10px] text-zinc-500 leading-relaxed italic">
+                 <p>
+                    <strong className="text-zinc-300">E = mc²:</strong> Energi luar biasa yang dilepaskan berasal dari "massa yang hilang" (mass defect) selama reaksi terjadi.
+                 </p>
+                 <p>
+                    <strong className="text-zinc-300">{mode === "fisi" ? "Reaksi Berantai:" : "Kondisi Ekstrem:"}</strong> {mode === "fisi" ? "Neutron sisa akan menabrak inti lain, menciptakan efek domino yang menghasilkan tenaga listrik." : "Fusi membutuhkan tekanan dan suhu jutaan derajat, seperti yang terjadi di pusat Matahari."}
+                 </p>
+              </div>
+           </div>
+
+           <div className="pt-6 border-t border-white/5">
+              <button onClick={initSimulation} className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg border border-white/5">
+                 <RotateCcw className="w-4 h-4" /> Reset Simulasi
+              </button>
+           </div>
         </div>
       </div>
     </div>

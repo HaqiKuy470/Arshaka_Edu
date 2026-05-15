@@ -1,39 +1,62 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause, RotateCcw } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronLeft, Zap, Move, ShieldAlert, Timer, Ruler, Droplets, Waves, Gauge, Thermometer, Box, Activity, ChevronRight, Flame, Settings, Share2, Lock, Unlock, Magnet, Target, Sparkles, Battery, Lightbulb, RefreshCcw, Sun, Filter, Microscope, Radio, Skull } from "lucide-react";
+import Link from "next/link";
+
+type Isotope = { name: string; tHalf: number; color: string; desc: string };
+const ISOTOPES: Isotope[] = [
+  { name: "Karbon-14", tHalf: 10, color: "#4ade80", desc: "Digunakan untuk penanggalan arkeologi (radiocarbon dating)." },
+  { name: "Iodium-131", tHalf: 4, color: "#f43f5e", desc: "Isotop medis untuk terapi tiroid, meluruh sangat cepat." },
+  { name: "Uranium-238", tHalf: 20, color: "#eab308", desc: "Waktu paruh sangat lama di alam (disimulasikan skala relatif)." },
+];
+
+interface Particle {
+  x: number;
+  y: number;
+  state: "parent" | "daughter";
+  decayTime: number; // Time in seconds when it decays
+}
 
 export default function PeluruhanRadioaktif() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isRunning, setIsRunning] = useState(false);
   
-  const [halfLife, setHalfLife] = useState(5); // seconds
-  const totalParticles = 400;
+  // Parameters
+  const [isotope, setIsotope] = useState(ISOTOPES[0]);
+  const [timeScale, setTimeScale] = useState(1);
+  const [totalAtoms] = useState(500);
 
-  // 0 = Undecayed (Red), 1 = Decayed (Blue)
-  const particlesRef = useRef<{x: number, y: number, state: number}[]>([]);
+  const particlesRef = useRef<Particle[]>([]);
+  const decayEventsRef = useRef<{x: number, y: number, t: number}[]>([]); // For flashes
+  const animationRef = useRef(0);
   const timeRef = useRef(0);
-  const [undecayedCount, setUndecayedCount] = useState(totalParticles);
+  const startTimeRef = useRef(Date.now());
+
+  // Count decayed
+  const [parentCount, setParentCount] = useState(totalAtoms);
+
+  const initParticles = () => {
+     const p: Particle[] = [];
+     const lambda = Math.log(2) / isotope.tHalf;
+     for (let i = 0; i < totalAtoms; i++) {
+        // Random decay time based on exponential distribution: t = -ln(U)/lambda
+        const decayT = -Math.log(Math.random()) / lambda;
+        p.push({
+           x: Math.random(),
+           y: Math.random(),
+           state: "parent",
+           decayTime: decayT
+        });
+     }
+     particlesRef.current = p;
+     timeRef.current = 0;
+     setParentCount(totalAtoms);
+  };
 
   useEffect(() => {
-    // Init particles
-    reset();
-  }, []);
-
-  const reset = () => {
-    setIsRunning(false);
-    timeRef.current = 0;
-    const newParticles = [];
-    for(let i=0; i<totalParticles; i++) {
-      newParticles.push({
-        x: Math.random() * 280 + 10,
-        y: Math.random() * 180 + 10,
-        state: 0
-      });
-    }
-    particlesRef.current = newParticles;
-    setUndecayedCount(totalParticles);
-  };
+    initParticles();
+  }, [isotope]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -41,135 +64,222 @@ export default function PeluruhanRadioaktif() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let animationId: number;
-    let lastTime = performance.now();
-
-    const render = (timeNow: number) => {
-      const dt = (timeNow - lastTime) / 1000; // seconds
-      lastTime = timeNow;
-
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
+    const render = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      const sidebarWidth = window.innerWidth >= 1024 ? 320 : 0;
+      const arenaW = canvas.width - sidebarWidth;
+      const arenaH = canvas.height;
+      const cx = arenaW / 2;
+      const cy = arenaH / 2;
+
+      const padding = 100;
+      const drawAreaW = arenaW - padding * 2;
+      const drawAreaH = arenaH - 250;
+      const drawAreaX = padding;
+      const drawAreaY = 100;
+
       if (isRunning) {
-        timeRef.current += dt;
-
-        // Probability of decay in dt: P = lambda * dt
-        // lambda = ln(2) / T_half
-        const lambda = 0.693 / halfLife;
-        const pDecay = lambda * dt;
-
-        let uCount = 0;
-        particlesRef.current.forEach(p => {
-          if (p.state === 0) {
-            if (Math.random() < pDecay) {
-              p.state = 1; // Decayed
-            } else {
-              uCount++;
-            }
-          }
-        });
-        setUndecayedCount(uCount);
+         timeRef.current += (1/60) * timeScale;
       }
+      const t = timeRef.current;
 
-      // Draw Particles
+      // --- Draw Grid/Container ---
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+      ctx.strokeRect(drawAreaX, drawAreaY, drawAreaW, drawAreaH);
+
+      // --- Process Particles ---
+      let currentParents = 0;
       particlesRef.current.forEach(p => {
-        ctx.beginPath();
-        // small jitter for alive ones
-        const jitterX = p.state === 0 ? (Math.random()-0.5)*2 : 0;
-        const jitterY = p.state === 0 ? (Math.random()-0.5)*2 : 0;
-        
-        ctx.arc(p.x + jitterX, p.y + jitterY, 4, 0, Math.PI*2);
-        ctx.fillStyle = p.state === 0 ? "#ef4444" : "#3b82f6"; // Red to Blue
-        ctx.fill();
+         const px = drawAreaX + p.x * drawAreaW;
+         const py = drawAreaY + p.y * drawAreaH;
+
+         if (p.state === "parent" && t >= p.decayTime) {
+            p.state = "daughter";
+            // Flash event
+            decayEventsRef.current.push({ x: px, y: py, t: 1.0 });
+         }
+
+         if (p.state === "parent") {
+            currentParents++;
+            ctx.fillStyle = isotope.color;
+            ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill();
+         } else {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+            ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI * 2); ctx.fill();
+         }
+      });
+      setParentCount(currentParents);
+
+      // --- Draw Flash Events (Particles Emitted) ---
+      decayEventsRef.current = decayEventsRef.current.filter(e => {
+         e.t -= 0.05;
+         ctx.strokeStyle = `rgba(255, 255, 255, ${e.t})`;
+         ctx.lineWidth = 1;
+         ctx.beginPath();
+         ctx.arc(e.x, e.y, (1 - e.t) * 20, 0, Math.PI * 2);
+         ctx.stroke();
+         
+         // Particle streak
+         ctx.beginPath();
+         ctx.moveTo(e.x, e.y);
+         ctx.lineTo(e.x + (1-e.t)*50, e.y - (1-e.t)*50);
+         ctx.stroke();
+
+         return e.t > 0;
       });
 
-      // Draw Graph line historical (approx curve)
-      // N(t) = N0 * e^(-lambda * t)
-      const gx = 20;
-      const gy = canvas.height - 40;
-      const gw = canvas.width - 40;
-      const gh = 60;
+      // --- Draw Decay Curve Graph ---
+      const gx = drawAreaX;
+      const gy = arenaH - 120;
+      const gw = drawAreaW;
+      const gh = 80;
 
-      ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx+gw, gy); ctx.moveTo(gx, gy); ctx.lineTo(gx, gy-gh); ctx.stroke();
+      // Axes
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+      ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + gw, gy); ctx.moveTo(gx, gy); ctx.lineTo(gx, gy - gh); ctx.stroke();
 
-      ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2;
+      // Plot
+      ctx.strokeStyle = isotope.color;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      for(let x=0; x<gw; x++) {
-        // x represents time axis from 0 to 3 half lives
-        const tScale = (x / gw) * (halfLife * 3);
-        const y = totalParticles * Math.exp(-(0.693/halfLife) * tScale);
-        const plotY = gy - (y/totalParticles)*gh;
-        if (x===0) ctx.moveTo(gx+x, plotY); else ctx.lineTo(gx+x, plotY);
+      for (let x = 0; x < gw; x++) {
+         const tx = (x / gw) * (isotope.tHalf * 3);
+         const ny = totalAtoms * Math.exp(-(Math.log(2) / isotope.tHalf) * tx);
+         const px = gx + x;
+         const py = gy - (ny / totalAtoms) * gh;
+         if (x === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
       }
       ctx.stroke();
 
-      // Draw current time marker on graph
-      const currX = gx + (timeRef.current / (halfLife * 3)) * gw;
-      if (currX <= gx+gw) {
-        ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(currX, gy - (undecayedCount/totalParticles)*gh, 4, 0, Math.PI*2); ctx.fill();
+      // Current Point
+      const currentX = gx + (t / (isotope.tHalf * 3)) * gw;
+      if (currentX < gx + gw) {
+         ctx.fillStyle = "white";
+         ctx.beginPath(); ctx.arc(currentX, gy - (currentParents / totalAtoms) * gh, 4, 0, Math.PI * 2); ctx.fill();
       }
 
-      animationId = requestAnimationFrame(render);
+      // Labels
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.font = "bold 9px Inter";
+      ctx.textAlign = "center";
+      ctx.fillText(`PROGRES WAKTU: ${t.toFixed(1)} s`, gx + gw/2, gy + 25);
     };
 
-    animationId = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animationId);
-  }, [isRunning, halfLife]);
+    const animate = () => { render(); animationRef.current = requestAnimationFrame(animate); };
+    animationRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [isRunning, isotope, timeScale]);
+
+  const reset = () => {
+    initParticles();
+    setIsRunning(false);
+  };
+
+  const percentage = Math.round((parentCount / totalAtoms) * 100);
 
   return (
-    <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
-      <div className="flex-1 relative flex items-center justify-center bg-zinc-950 min-h-[50vh] lg:min-h-0">
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+    <div className="fixed inset-0 bg-zinc-950 flex flex-col lg:flex-row overflow-hidden font-sans select-none touch-none">
+      <canvas ref={canvasRef} className="absolute inset-0 z-0" />
+
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 h-16 px-6 flex items-center justify-between z-30 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
+        <div className="flex items-center gap-4 pointer-events-auto">
+          <Link href="/simulasi" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 text-white transition-all">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex flex-col">
+             <h1 className="text-lg font-bold text-white tracking-tight leading-none">Peluruhan Radioaktif</h1>
+             <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-[0.2em] mt-1">Waktu Paruh • Eksponensial • Fisika Inti</span>
+          </div>
+        </div>
       </div>
 
-      <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 glass-card flex flex-col h-full z-10">
-        <div className="p-4 border-b border-white/10"><h3 className="font-semibold text-white">Peluruhan Radioaktif</h3></div>
-        <div className="p-6 flex-1 overflow-y-auto space-y-6">
-          
-          <div className="flex gap-2">
-            <button onClick={() => setIsRunning(!isRunning)} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors">
-              <Play className="w-4 h-4"/> {isRunning ? 'Jeda' : 'Mulai'}
-            </button>
-            <button onClick={reset} className="p-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors">
-              <RotateCcw className="w-5 h-5 text-white" />
-            </button>
-          </div>
+      <div className="flex-1 relative pointer-events-none" />
 
-          <div className="grid grid-cols-2 gap-2 text-center mt-4">
-            <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl">
-              <div className="text-[10px] text-red-400 font-bold mb-1">Inti Induk (Belum Luruh)</div>
-              <div className="text-2xl font-mono text-white">{undecayedCount}</div>
-            </div>
-            <div className="bg-blue-500/10 border border-blue-500/30 p-3 rounded-xl">
-              <div className="text-[10px] text-blue-400 font-bold mb-1">Inti Anak (Sudah Luruh)</div>
-              <div className="text-2xl font-mono text-white">{totalParticles - undecayedCount}</div>
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-4 border-t border-white/10">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <label className="text-sm text-zinc-300 font-bold">Waktu Paruh (T½)</label>
-                <span className="text-zinc-300 font-mono">{halfLife} detik</span>
+      {/* SIDEBAR PANEL */}
+      <div className="w-full lg:w-80 z-20 flex flex-col bg-zinc-900/50 backdrop-blur-3xl border-l border-white/10 overflow-y-auto custom-scrollbar shadow-2xl">
+        <div className="p-6 space-y-6 pt-20">
+           
+           {/* Percentage Card */}
+           <div className={`p-6 rounded-3xl border transition-all duration-500 text-center relative overflow-hidden bg-black/40 border-white/10`}>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+              <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-2">Sisa Inti Induk</div>
+              <div className="text-4xl font-black text-white">
+                 {percentage}%
               </div>
-              <input 
-                type="range" className="w-full accent-white" 
-                min="1" max="20" step="1" 
-                value={halfLife} onChange={(e) => {setHalfLife(parseInt(e.target.value)); reset();}} 
-              />
-            </div>
-          </div>
+              <div className="mt-4 flex items-center justify-center gap-2">
+                 <Radio className={`w-4 h-4 ${percentage > 50 ? 'text-emerald-400' : 'text-rose-500'} animate-spin-slow`} />
+                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                   {parentCount} / {totalAtoms} Atom
+                 </span>
+              </div>
+           </div>
 
-          <div className="p-4 bg-black/30 rounded-xl border border-white/5 space-y-3 text-xs text-zinc-300 leading-relaxed mt-4">
-            <p><strong>Waktu Paruh</strong> adalah waktu yang dibutuhkan agar separuh dari jumlah inti atom radioaktif awal meluruh menjadi atom yang lebih stabil.</p>
-            <div className="font-mono text-center text-white mt-2 border border-zinc-700 rounded p-2 bg-zinc-900">
-              N(t) = N₀ · (½)^(t/T½)
-            </div>
-          </div>
+           {/* Isotope Selector */}
+           <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                 <Filter className="w-4 h-4 text-zinc-500" />
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Pilih Isotop</span>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                 {ISOTOPES.map(iso => (
+                   <button key={iso.name} onClick={() => setIsotope(iso)} className={`py-4 px-4 rounded-2xl text-[10px] font-black uppercase transition-all border flex flex-col items-start gap-1 ${isotope.name === iso.name ? 'bg-white/10 border-white/30 text-white shadow-lg' : 'bg-transparent border-white/5 text-zinc-600'}`}>
+                      <div className="flex items-center justify-between w-full">
+                         <span>{iso.name}</span>
+                         <span className="text-[8px] font-normal opacity-60">T½ = {iso.tHalf}s</span>
+                      </div>
+                      <p className="text-[8px] font-normal lowercase italic opacity-40 leading-tight">{iso.desc}</p>
+                   </button>
+                 ))}
+              </div>
+           </div>
 
+           {/* Parameters */}
+           <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-2 mb-1">
+                 <Settings className="w-4 h-4 text-zinc-500" />
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Kontrol Waktu</span>
+              </div>
+              
+              <div className="bg-white/5 p-4 rounded-3xl border border-white/10 space-y-4">
+                 <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Kecepatan Simulasi</label>
+                       <span className="text-xs font-mono text-white">{timeScale}x</span>
+                    </div>
+                    <input type="range" className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-white" min="0.1" max="5" step="0.1" value={timeScale} onChange={(e) => setTimeScale(parseFloat(e.target.value))} />
+                 </div>
+              </div>
+           </div>
+
+           {/* Physics Insight */}
+           <div className="p-5 bg-black/30 rounded-2xl border border-white/5 space-y-4 shadow-xl">
+              <div className="flex items-center gap-2">
+                 <ShieldAlert className="w-4 h-4 text-amber-400" />
+                 <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">Hukum Peluruhan</span>
+              </div>
+              <div className="space-y-3 text-[10px] text-zinc-500 leading-relaxed italic">
+                 <p>
+                    <strong className="text-zinc-300">Statistik Murni:</strong> Kita tidak bisa memprediksi kapan satu atom tertentu akan meluruh, namun kita bisa memprediksi perilaku rata-rata dari ribuan atom secara akurat.
+                 </p>
+                 <p>
+                    <strong className="text-zinc-300">Waktu Paruh:</strong> Setiap interval {isotope.tHalf} detik, jumlah atom sisa akan berkurang menjadi separuhnya.
+                 </p>
+              </div>
+           </div>
+
+           <div className="pt-6 border-t border-white/5 flex gap-2">
+              <button onClick={() => setIsRunning(!isRunning)} className="flex-1 py-4 bg-white hover:bg-zinc-200 text-black font-black rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg">
+                 {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                 {isRunning ? "PAUSE" : "START"}
+              </button>
+              <button onClick={reset} className="p-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl border border-white/5 transition-all">
+                 <RotateCcw className="w-4 h-4" />
+              </button>
+           </div>
         </div>
       </div>
     </div>

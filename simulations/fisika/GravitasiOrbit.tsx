@@ -1,38 +1,38 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause, RefreshCw } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronLeft, Zap, Move, ShieldAlert, Timer, Ruler, Droplets, Waves, Gauge, Thermometer, Box, Activity, ChevronRight, Flame, Settings, Share2, Lock, Unlock, Magnet, Target, Sparkles, Battery, Lightbulb, RefreshCcw, Sun, Filter, Microscope, Globe, Orbit as OrbitIcon } from "lucide-react";
+import Link from "next/link";
+
+interface Point { x: number; y: number; }
 
 export default function GravitasiOrbit() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>(0);
-
-  const [playing, setPlaying] = useState(true);
-  const [starMass, setStarMass] = useState(100); 
+  const [isRunning, setIsRunning] = useState(true);
+  
+  // Parameters
+  const [starMass, setStarMass] = useState(150);
   const [planetMass, setPlanetMass] = useState(10);
-  const [velocity, setVelocity] = useState(2.0);
-  const [showPath, setShowPath] = useState(true);
-  const [showForces, setShowForces] = useState(true);
+  const [initVelocity, setInitVelocity] = useState(3.5);
+  const [showVectors, setShowVectors] = useState(true);
+  const [showGrid, setShowGrid] = useState(true);
 
-  // Simulation state
+  const animationRef = useRef(0);
   const stateRef = useRef({
-    planet: { x: 200, y: 0, vx: 0, vy: velocity },
-    path: [] as {x: number, y: number}[],
+    px: 200, py: 0, vx: 0, vy: 3.5,
+    path: [] as Point[]
   });
 
-  const resetSimulation = () => {
+  const reset = () => {
     stateRef.current = {
-      planet: { x: 200, y: 0, vx: 0, vy: velocity },
-      path: [],
+      px: 200, py: 0, vx: 0, vy: initVelocity,
+      path: []
     };
-    if (!playing) setPlaying(true);
   };
 
-  // Sync initial velocity when slider changes (only if it resets)
   useEffect(() => {
-    stateRef.current.planet.vy = velocity;
-    stateRef.current.path = [];
-  }, [velocity]);
+    reset();
+  }, [initVelocity]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -40,230 +40,229 @@ export default function GravitasiOrbit() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const G = 0.5; // Gravitational constant for simulation scale
+    const G = 5;
 
     const render = () => {
-      const displayWidth = canvas.clientWidth;
-      const displayHeight = canvas.clientHeight;
-      if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
-        canvas.width = displayWidth;
-        canvas.height = displayHeight;
-      }
-
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
 
-      // Draw background stars
-      ctx.fillStyle = "rgba(255,255,255,0.8)";
-      for(let i=0; i<50; i++) {
-        // Pseudo-random static stars
-        const sx = Math.sin(i*123) * cx + cx;
-        const sy = Math.cos(i*321) * cy + cy;
-        ctx.fillRect(sx, sy, 1, 1);
+      const sidebarWidth = window.innerWidth >= 1024 ? 320 : 0;
+      const arenaW = canvas.width - sidebarWidth;
+      const arenaH = canvas.height;
+      const cx = arenaW / 2;
+      const cy = arenaH / 2;
+
+      // --- Physics ---
+      const s = stateRef.current;
+      if (isRunning) {
+         const dx = -s.px;
+         const dy = -s.py;
+         const distSq = dx*dx + dy*dy;
+         const dist = Math.sqrt(distSq);
+         
+         const force = (G * starMass * planetMass) / Math.max(distSq, 100);
+         const ax = (force * dx / dist) / planetMass;
+         const ay = (force * dy / dist) / planetMass;
+
+         s.vx += ax;
+         s.vy += ay;
+         s.px += s.vx;
+         s.py += s.vy;
+
+         s.path.push({ x: s.px, y: s.py });
+         if (s.path.length > 500) s.path.shift();
       }
 
-      const p = stateRef.current.planet;
-
-      if (playing) {
-        // Calculate gravitational force
-        const dx = -p.x;
-        const dy = -p.y;
-        const distSq = dx*dx + dy*dy;
-        const dist = Math.sqrt(distSq);
-        
-        // F = G * m1 * m2 / r^2
-        const force = (G * starMass * planetMass) / distSq;
-        const ax = (force * dx / dist) / planetMass;
-        const ay = (force * dy / dist) / planetMass;
-
-        p.vx += ax;
-        p.vy += ay;
-        p.x += p.vx;
-        p.y += p.vy;
-
-        // Record path
-        if (showPath) {
-          stateRef.current.path.push({x: p.x, y: p.y});
-          if (stateRef.current.path.length > 300) {
-            stateRef.current.path.shift();
-          }
-        }
+      // --- Drawing ---
+      // 1. Spacetime Grid Warp
+      if (showGrid) {
+         ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+         ctx.lineWidth = 1;
+         const gridSize = 40;
+         for (let x = 0; x < arenaW; x += gridSize) {
+            ctx.beginPath();
+            for (let y = 0; y < arenaH; y += 10) {
+               const dx = x - cx;
+               const dy = y - cy;
+               const d = Math.sqrt(dx*dx + dy*dy);
+               const warp = (starMass * 100) / (d + 50);
+               const wx = x - (dx/d) * warp;
+               const wy = y - (dy/d) * warp;
+               if (y === 0) ctx.moveTo(wx, wy); else ctx.lineTo(wx, wy);
+            }
+            ctx.stroke();
+         }
+         for (let y = 0; y < arenaH; y += gridSize) {
+            ctx.beginPath();
+            for (let x = 0; x < arenaW; x += 10) {
+               const dx = x - cx;
+               const dy = y - cy;
+               const d = Math.sqrt(dx*dx + dy*dy);
+               const warp = (starMass * 100) / (d + 50);
+               const wx = x - (dx/d) * warp;
+               const wy = y - (dy/d) * warp;
+               if (x === 0) ctx.moveTo(wx, wy); else ctx.lineTo(wx, wy);
+            }
+            ctx.stroke();
+         }
       }
 
-      // Draw Path
-      if (showPath && stateRef.current.path.length > 1) {
-        ctx.beginPath();
-        ctx.strokeStyle = "rgba(139, 92, 246, 0.4)";
-        ctx.lineWidth = 2;
-        ctx.moveTo(cx + stateRef.current.path[0].x, cy + stateRef.current.path[0].y);
-        for (let i = 1; i < stateRef.current.path.length; i++) {
-          ctx.lineTo(cx + stateRef.current.path[i].x, cy + stateRef.current.path[i].y);
-        }
-        ctx.stroke();
+      // 2. Orbit Path
+      if (s.path.length > 1) {
+         ctx.strokeStyle = "rgba(139, 92, 246, 0.3)";
+         ctx.lineWidth = 2;
+         ctx.beginPath();
+         ctx.moveTo(cx + s.path[0].x, cy + s.path[0].y);
+         s.path.forEach(pt => ctx.lineTo(cx + pt.x, cy + pt.y));
+         ctx.stroke();
       }
 
-      // Draw Star (Sun)
-      ctx.beginPath();
-      ctx.fillStyle = "#facc15"; // Yellow
-      const starRadius = 20 + (starMass / 10);
-      ctx.arc(cx, cy, starRadius, 0, Math.PI * 2);
-      ctx.shadowColor = "#facc15";
-      ctx.shadowBlur = 40;
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      // 3. Central Star
+      ctx.save();
+      ctx.translate(cx, cy);
+      const starR = 20 + starMass / 10;
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, starR * 2);
+      grad.addColorStop(0, "#fbbf24");
+      grad.addColorStop(0.5, "#f59e0b");
+      grad.addColorStop(1, "transparent");
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(0, 0, starR * 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fffbeb";
+      ctx.beginPath(); ctx.arc(0, 0, starR, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
 
-      // Draw Planet
-      ctx.beginPath();
-      ctx.fillStyle = "#38bdf8"; // Light blue
-      const planetRadius = 8 + (planetMass / 5);
-      ctx.arc(cx + p.x, cy + p.y, planetRadius, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Draw Force Vector
-      if (showForces) {
-        ctx.beginPath();
-        ctx.strokeStyle = "#ef4444"; // Red for gravity
-        ctx.lineWidth = 2;
-        ctx.moveTo(cx + p.x, cy + p.y);
-        
-        const dx = -p.x;
-        const dy = -p.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        const forceLength = 50 * (starMass / 100);
-        
-        ctx.lineTo(cx + p.x + (dx/dist)*forceLength, cy + p.y + (dy/dist)*forceLength);
-        
-        // Arrow head
-        const angle = Math.atan2(dy, dx);
-        ctx.lineTo(cx + p.x + (dx/dist)*forceLength - 10*Math.cos(angle - Math.PI/6), cy + p.y + (dy/dist)*forceLength - 10*Math.sin(angle - Math.PI/6));
-        ctx.stroke();
-
-        // Velocity vector
-        ctx.beginPath();
-        ctx.strokeStyle = "#22c55e"; // Green for velocity
-        ctx.moveTo(cx + p.x, cy + p.y);
-        ctx.lineTo(cx + p.x + p.vx * 15, cy + p.y + p.vy * 15);
-        ctx.stroke();
+      // 4. Orbiting Planet
+      ctx.save();
+      ctx.translate(cx + s.px, cy + s.py);
+      const planetR = 8 + planetMass / 5;
+      ctx.shadowBlur = 15; ctx.shadowColor = "#38bdf8";
+      ctx.fillStyle = "#38bdf8";
+      ctx.beginPath(); ctx.arc(0, 0, planetR, 0, Math.PI * 2); ctx.fill();
+      
+      if (showVectors) {
+         // Gravity Vector (towards center)
+         ctx.strokeStyle = "#f43f5e"; ctx.lineWidth = 2;
+         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-s.px * 0.1, -s.py * 0.1); ctx.stroke();
+         // Velocity Vector (tangential)
+         ctx.strokeStyle = "#10b981"; ctx.lineWidth = 2;
+         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(s.vx * 15, s.vy * 15); ctx.stroke();
       }
-
-      animationRef.current = requestAnimationFrame(render);
+      ctx.restore();
     };
 
-    animationRef.current = requestAnimationFrame(render);
+    const animate = () => { render(); animationRef.current = requestAnimationFrame(animate); };
+    animationRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationRef.current);
-  }, [playing, starMass, planetMass, showPath, showForces]);
+  }, [isRunning, starMass, planetMass, showVectors, showGrid]);
+
+  const velocityMag = Math.sqrt(stateRef.current.vx**2 + stateRef.current.vy**2).toFixed(2);
+  const distance = Math.sqrt(stateRef.current.px**2 + stateRef.current.py**2).toFixed(0);
 
   return (
-    <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
-      <div className="flex-1 relative flex items-center justify-center bg-[#0a0a0f] min-h-[50vh] lg:min-h-0 overflow-hidden">
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full cursor-crosshair" />
-        
-        {/* HUD */}
-        <div className="absolute top-6 left-6 glass-card px-4 py-3 rounded-xl border border-white/10 flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-            <span className="text-xs text-zinc-300">Gaya Gravitasi</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span className="text-xs text-zinc-300">Kecepatan Vektor</span>
+    <div className="fixed inset-0 bg-zinc-950 flex flex-col lg:flex-row overflow-hidden font-sans select-none touch-none text-white">
+      <canvas ref={canvasRef} className="absolute inset-0 z-0" />
+
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 h-16 px-6 flex items-center justify-between z-30 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
+        <div className="flex items-center gap-4 pointer-events-auto">
+          <Link href="/simulasi" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 text-white transition-all">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex flex-col">
+             <h1 className="text-lg font-bold text-white tracking-tight leading-none">Gravitasi & Orbit</h1>
+             <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-[0.2em] mt-1">Hukum Newton • Kelengkapan Ruang-Waktu • Kecepatan Orbit</span>
           </div>
         </div>
-
-        <button 
-          onClick={() => setPlaying(!playing)}
-          className="absolute bottom-6 left-6 w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all z-20 hover:scale-105"
-        >
-          {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
-        </button>
       </div>
 
-      <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 glass-card flex flex-col h-full z-10">
-        <div className="p-4 border-b border-white/10">
-          <h3 className="font-semibold text-white">Mekanika Orbital</h3>
-        </div>
-        
-        <div className="p-4 flex-1 overflow-y-auto space-y-6">
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-zinc-300">Massa Bintang</label>
-              <span className="text-xs text-yellow-400 font-mono">{starMass}x</span>
-            </div>
-            <input 
-              type="range" 
-              className="w-full accent-yellow-500" 
-              min="10" max="300" step="10" 
-              value={starMass}
-              onChange={(e) => setStarMass(parseFloat(e.target.value))}
-            />
-          </div>
-          
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-zinc-300">Massa Planet</label>
-              <span className="text-xs text-sky-400 font-mono">{planetMass}x</span>
-            </div>
-            <input 
-              type="range" 
-              className="w-full accent-sky-500" 
-              min="1" max="50" step="1" 
-              value={planetMass}
-              onChange={(e) => setPlanetMass(parseFloat(e.target.value))}
-            />
-          </div>
+      <div className="flex-1 relative pointer-events-none" />
 
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-zinc-300">Kecepatan Awal</label>
-              <span className="text-xs text-green-400 font-mono">{velocity.toFixed(1)}</span>
-            </div>
-            <input 
-              type="range" 
-              className="w-full accent-green-500" 
-              min="0.5" max="5.0" step="0.1" 
-              value={velocity}
-              onChange={(e) => setVelocity(parseFloat(e.target.value))}
-            />
-            <p className="text-[10px] text-zinc-500">Mengubah kecepatan awal akan me-reset orbit.</p>
-          </div>
+      {/* SIDEBAR PANEL */}
+      <div className="w-full lg:w-80 z-20 flex flex-col bg-zinc-900/50 backdrop-blur-3xl border-l border-white/10 overflow-y-auto custom-scrollbar shadow-2xl">
+        <div className="p-6 space-y-6 pt-20">
+           
+           {/* Physics HUD */}
+           <div className="bg-white/5 border border-white/10 p-5 rounded-3xl space-y-4 shadow-xl">
+              <div className="flex items-center gap-2 mb-2">
+                 <Activity className="w-4 h-4 text-sky-400" />
+                 <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">Data Orbital</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="flex flex-col">
+                    <span className="text-[8px] text-zinc-500 uppercase font-black tracking-widest mb-1">Kecepatan</span>
+                    <span className="text-sm font-black text-white">{velocityMag} v</span>
+                 </div>
+                 <div className="flex flex-col text-right">
+                    <span className="text-[8px] text-zinc-500 uppercase font-black tracking-widest mb-1">Jarak (r)</span>
+                    <span className="text-sm font-black text-emerald-400">{distance} km</span>
+                 </div>
+              </div>
+           </div>
 
-          <div className="space-y-4 pt-6 border-t border-white/10">
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <div className="relative">
-                <input 
-                  type="checkbox" 
-                  className="sr-only peer" 
-                  checked={showPath}
-                  onChange={(e) => setShowPath(e.target.checked)}
-                />
-                <div className="w-10 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+           {/* Parameters */}
+           <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-2 mb-1">
+                 <Settings className="w-4 h-4 text-zinc-500" />
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Konfigurasi Massa</span>
               </div>
-              <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">Tampilkan Jejak Orbit</span>
-            </label>
-            
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <div className="relative">
-                <input 
-                  type="checkbox" 
-                  className="sr-only peer" 
-                  checked={showForces}
-                  onChange={(e) => setShowForces(e.target.checked)}
-                />
-                <div className="w-10 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
+              
+              <div className="bg-white/5 p-5 rounded-3xl border border-white/10 space-y-6">
+                 <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Massa Bintang</label>
+                       <span className="text-xs font-black text-amber-400">{starMass} M₀</span>
+                    </div>
+                    <input type="range" className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-amber-400" min="50" max="400" step="10" value={starMass} onChange={(e) => setStarMass(parseInt(e.target.value))} />
+                 </div>
+
+                 <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Kecepatan Awal</label>
+                       <span className="text-xs font-black text-sky-400">{initVelocity} v</span>
+                    </div>
+                    <input type="range" className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-sky-400" min="0.5" max="8.0" step="0.1" value={initVelocity} onChange={(e) => setInitVelocity(parseFloat(e.target.value))} />
+                 </div>
               </div>
-              <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">Tampilkan Vektor Gaya</span>
-            </label>
-          </div>
-        </div>
-        
-        <div className="p-4 border-t border-white/10 bg-black/20">
-          <button 
-            onClick={resetSimulation}
-            className="w-full py-2.5 bg-white text-black font-semibold rounded-lg hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2"
-          >
-            <RefreshCw className="w-4 h-4" /> Reset Posisi
-          </button>
+           </div>
+
+           {/* Visualization Toggles */}
+           <div className="space-y-2">
+              <button onClick={() => setShowGrid(!showGrid)} className={`w-full py-3 px-4 rounded-xl text-[9px] font-black uppercase transition-all border flex items-center justify-between ${showGrid ? 'bg-white/10 border-white/30 text-white' : 'bg-transparent border-white/5 text-zinc-600'}`}>
+                 Grid Ruang-Waktu
+                 <Move className="w-3 h-3" />
+              </button>
+              <button onClick={() => setShowVectors(!showVectors)} className={`w-full py-3 px-4 rounded-xl text-[9px] font-black uppercase transition-all border flex items-center justify-between ${showVectors ? 'bg-white/10 border-white/30 text-white' : 'bg-transparent border-white/5 text-zinc-600'}`}>
+                 Vektor Gaya & Kecepatan
+                 <Zap className="w-3 h-3" />
+              </button>
+           </div>
+
+           {/* Physics Insight */}
+           <div className="p-5 bg-black/30 rounded-2xl border border-white/5 space-y-4 shadow-xl">
+              <div className="flex items-center gap-2">
+                 <Globe className="w-4 h-4 text-emerald-400" />
+                 <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">Wawasan Orbital</span>
+              </div>
+              <div className="space-y-3 text-[10px] text-zinc-500 leading-relaxed italic">
+                 <p>
+                    <strong className="text-zinc-300">Curvature:</strong> Menurut Einstein, gravitasi bukanlah gaya tarik, melainkan kelengkungan ruang-waktu yang disebabkan oleh massa besar.
+                 </p>
+                 <p>
+                    <strong className="text-zinc-300">Kecepatan Lepas:</strong> Jika kecepatan awal terlalu tinggi, planet akan lepas dari gravitasi bintang dan bergerak dalam lintasan hiperbolik.
+                 </p>
+              </div>
+           </div>
+
+           <div className="pt-6 border-t border-white/5 flex gap-2">
+              <button onClick={() => setIsRunning(!isRunning)} className="flex-1 py-4 bg-white hover:bg-zinc-200 text-black font-black rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg">
+                 {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                 {isRunning ? "PAUSE" : "START"}
+              </button>
+              <button onClick={reset} className="p-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl border border-white/5 transition-all">
+                 <RotateCcw className="w-4 h-4" />
+              </button>
+           </div>
         </div>
       </div>
     </div>

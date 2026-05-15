@@ -76,7 +76,7 @@ export default function SistemImun() {
       // Update and draw Macrophages
       macros.forEach(m => {
          // Chase nearest bacteria
-         let nearest = null;
+         let nearest: any = null;
          let minDist = 9999;
          bacs.forEach(b => {
             const d = Math.hypot(b.x - m.x, b.y - m.y);

@@ -1,158 +1,265 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Play, Pause } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Play, Pause, RotateCcw, ChevronLeft, Zap, Move, ShieldAlert, Timer, Ruler, Droplets, Waves, Gauge, Thermometer, Box, Activity, ChevronRight, Flame, Settings } from "lucide-react";
+import Link from "next/link";
 
 export default function MesinCarnot() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isRunning, setIsRunning] = useState(true);
   
-  const [Th, setTh] = useState(600); // K (Hot reservoir)
-  const [Tc, setTc] = useState(300); // K (Cold reservoir)
+  // Reservoir Temperatures (Kelvin)
+  const [Th, setTh] = useState(600); 
+  const [Tc, setTc] = useState(300);
 
-  // Efficiency of Carnot Engine = 1 - (Tc / Th)
-  const efficiency = 1 - (Tc / Th);
-  
-  // Animation State (0 to 4 phases)
-  // 1. Isothermal Expansion (Hot)
-  // 2. Adiabatic Expansion (Cooling)
-  // 3. Isothermal Compression (Cold)
-  // 4. Adiabatic Compression (Heating)
-  
-  const [phase, setPhase] = useState(0); 
+  // Simulation State (0 to 4 cycle phases)
+  const [progress, setProgress] = useState(0); 
+  const animationRef = useRef(0);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
     if (isRunning) {
-      interval = setInterval(() => {
-        setPhase(p => (p + 0.05) % 4); // smooth progression
-      }, 50);
+      const step = () => {
+        setProgress(p => (p + 0.01) % 4);
+        animationRef.current = requestAnimationFrame(step);
+      };
+      animationRef.current = requestAnimationFrame(step);
     }
-    return () => clearInterval(interval);
+    return () => cancelAnimationFrame(animationRef.current);
   }, [isRunning]);
 
-  // Determine current active stroke (0, 1, 2, 3)
-  const stroke = Math.floor(phase);
+  // Derived Values
+  const efficiency = 1 - (Tc / Th);
+  const phase = Math.floor(progress); // 0, 1, 2, 3
+  const tPhase = progress % 1; // 0 to 1
+
+  // P-V Calculation for Visualization
+  // Stage 1 (Iso-Exp): V: 20 -> 50, P: 100 -> 40 (T = Th)
+  // Stage 2 (Adia-Exp): V: 50 -> 80, P: 40 -> 15 (T -> Tc)
+  // Stage 3 (Iso-Comp): V: 80 -> 32, P: 15 -> 37.5 (T = Tc)
+  // Stage 4 (Adia-Comp): V: 32 -> 20, P: 37.5 -> 100 (T -> Th)
   
-  // Calculate P and V for the graph (just representative curves)
-  // Let's just animate a dot around a representative P-V path
-  let currentV = 0;
-  let currentP = 0;
+  let P = 0;
+  let V = 0;
   
-  if (stroke === 0) { // Iso-Expansion: V increases, P decreases slowly
-    const t = phase % 1;
-    currentV = 20 + t * 40; // 20 to 60
-    currentP = 100 - t * 30; // 100 to 70
-  } else if (stroke === 1) { // Adia-Expansion: V increases, P drops fast
-    const t = phase % 1;
-    currentV = 60 + t * 20; // 60 to 80
-    currentP = 70 - t * 40; // 70 to 30
-  } else if (stroke === 2) { // Iso-Compression: V decreases, P increases slowly
-    const t = phase % 1;
-    currentV = 80 - t * 40; // 80 to 40
-    currentP = 30 + t * 20; // 30 to 50
-  } else if (stroke === 3) { // Adia-Compression: V decreases, P spikes fast
-    const t = phase % 1;
-    currentV = 40 - t * 20; // 40 to 20
-    currentP = 50 + t * 50; // 50 to 100
+  if (phase === 0) { // Isothermal Expansion
+    V = 20 + tPhase * 30;
+    P = (Th * 10) / V;
+  } else if (phase === 1) { // Adiabatic Expansion
+    V = 50 + tPhase * 30;
+    P = (Th * 10) / Math.pow(V, 1.4) * Math.pow(50, 0.4); 
+  } else if (phase === 2) { // Isothermal Compression
+    V = 80 - tPhase * 48;
+    P = (Tc * 10) / V;
+  } else { // Adiabatic Compression
+    V = 32 - tPhase * 12;
+    P = (Tc * 10) / Math.pow(V, 1.4) * Math.pow(32, 0.4);
   }
 
+  // Animation Refs
+  const reset = () => {
+    setTh(600);
+    setTc(300);
+    setProgress(0);
+  };
+
   return (
-    <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
-      <div className="flex-1 relative flex flex-col items-center justify-center bg-zinc-950 p-6 min-h-[50vh] lg:min-h-0 gap-8">
-        
-        {/* Piston Animation */}
-        <div className="flex items-end gap-4 h-64">
-          <div className="relative w-32 h-64 border-4 border-t-0 border-white/20 rounded-b-xl flex flex-col justify-end overflow-hidden bg-zinc-900">
-            {/* Piston Head */}
-            <div 
-              className="w-full bg-zinc-300 h-6 border-b-4 border-zinc-500 absolute transition-all" 
-              style={{ bottom: `${currentV}%` }} 
-            />
-            {/* Heat Source Indication */}
-            <div 
-              className="w-full absolute bottom-0 h-4 transition-colors duration-300"
-              style={{ 
-                backgroundColor: stroke === 0 ? '#ef4444' : stroke === 2 ? '#3b82f6' : 'transparent',
-                opacity: stroke === 0 || stroke === 2 ? 1 : 0
-              }}
-            />
-            {/* Gas Color */}
-            <div 
-              className="w-full transition-all"
-              style={{ 
-                height: `${currentV}%`,
-                backgroundColor: currentP > 60 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)'
-              }}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2 w-48 text-xs text-zinc-400">
-            <div className={`p-2 rounded border ${stroke === 0 ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-white/10'}`}>
-              <strong>1. Ekspansi Isotermal</strong><br/>Menyerap Kalor (Qh) dari T_tinggi. Piston naik.
-            </div>
-            <div className={`p-2 rounded border ${stroke === 1 ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' : 'border-white/10'}`}>
-              <strong>2. Ekspansi Adiabatik</strong><br/>Tanpa kalor masuk/keluar. Suhu gas turun.
-            </div>
-            <div className={`p-2 rounded border ${stroke === 2 ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'border-white/10'}`}>
-              <strong>3. Kompresi Isotermal</strong><br/>Melepas Kalor (Qc) ke T_rendah. Piston turun.
-            </div>
-            <div className={`p-2 rounded border ${stroke === 3 ? 'bg-orange-500/20 border-orange-500 text-orange-400' : 'border-white/10'}`}>
-              <strong>4. Kompresi Adiabatik</strong><br/>Ditekan tanpa kalor. Suhu gas naik kembali ke T_tinggi.
-            </div>
+    <div ref={containerRef} className="fixed inset-0 bg-zinc-950 flex flex-col lg:flex-row overflow-hidden font-sans select-none">
+      
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 h-16 px-6 flex items-center justify-between z-30 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
+        <div className="flex items-center gap-4 pointer-events-auto">
+          <Link href="/simulasi" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 text-white transition-all">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex flex-col">
+             <h1 className="text-lg font-bold text-white tracking-tight leading-none">Mesin Carnot</h1>
+             <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-[0.2em] mt-1">Siklus Termodinamika • Efisiensi</span>
           </div>
         </div>
+      </div>
 
-        {/* P-V Diagram */}
-        <div className="w-full max-w-[300px] h-48 bg-black/50 border border-white/10 rounded-xl relative p-4 mt-8">
-          <div className="absolute text-[10px] text-zinc-500 top-2 left-2">P (Tekanan)</div>
-          <div className="absolute text-[10px] text-zinc-500 bottom-2 right-2">V (Volume)</div>
-          
-          <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
-            {/* Axes */}
-            <polyline points="0,0 0,100 100,100" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
-            
-            {/* Carnot Cycle Outline */}
-            <path d="M 20 0 Q 40 15 60 30 Q 70 50 80 70 Q 60 60 40 50 Q 30 25 20 0" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-            
-            {/* Live Dot */}
-            <circle cx={currentV} cy={100 - currentP} r="4" fill="#22c55e" />
-          </svg>
-        </div>
+      {/* Main Simulation Area */}
+      <div className="flex-1 relative flex flex-col items-center justify-center p-8 bg-black/20 overflow-hidden">
+         
+         {/* P-V Diagram Card */}
+         <div className="absolute top-24 left-8 w-64 glass-card p-4 rounded-2xl border border-white/10 bg-black/40 z-10 hidden md:block animate-in slide-in-from-left duration-700">
+            <div className="flex items-center justify-between mb-4">
+               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Diagram P-V</span>
+               <Activity className="w-3 h-3 text-emerald-500" />
+            </div>
+            <div className="relative aspect-square bg-black/40 rounded-xl overflow-hidden border border-white/5 p-2">
+               <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+                  {/* Grid Lines */}
+                  <line x1="0" y1="90" x2="100" y2="90" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                  <line x1="10" y1="0" x2="10" y2="100" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                  
+                  {/* Ideal Cycle Path (Representative) */}
+                  <path 
+                    d="M 20 20 Q 35 40 50 60 Q 65 80 80 85 Q 50 85 32 75 Q 25 45 20 20" 
+                    fill="rgba(56, 189, 248, 0.05)" 
+                    stroke="rgba(255,255,255,0.1)" 
+                    strokeWidth="1" 
+                    strokeDasharray="2"
+                  />
+                  
+                  {/* Dynamic Tracer Dot */}
+                  <circle 
+                    cx={V} 
+                    cy={100 - P} 
+                    r="4" 
+                    fill="#10b981" 
+                    className="transition-all duration-100"
+                    style={{ 
+                       filter: 'drop-shadow(0 0 5px #10b981)'
+                    }}
+                  />
+               </svg>
+               <div className="absolute bottom-1 right-2 text-[8px] text-zinc-500 uppercase">Volume (V)</div>
+               <div className="absolute top-2 left-1 text-[8px] text-zinc-500 uppercase transform -rotate-90 origin-bottom-left">Tekanan (P)</div>
+            </div>
+         </div>
+
+         {/* Engine Visual */}
+         <div className="relative flex flex-col items-center animate-in zoom-in duration-700">
+            {/* Cylinder & Piston */}
+            <div className="relative w-64 h-80 bg-zinc-900 border-x-8 border-b-8 border-zinc-800 rounded-b-[40px] overflow-hidden shadow-2xl">
+               {/* Gas Fill */}
+               <div 
+                 className="absolute bottom-0 w-full transition-all duration-100"
+                 style={{ 
+                    height: `${V}%`,
+                    backgroundColor: phase === 0 ? 'hsla(0, 100%, 50%, 0.15)' : phase === 2 ? 'hsla(220, 100%, 50%, 0.15)' : 'rgba(255,255,255,0.05)'
+                 }}
+               >
+                  <div className="absolute inset-0 bg-[radial-gradient(circle,white_1px,transparent_1px)] bg-[size:15px_15px] opacity-10" />
+               </div>
+
+               {/* Insulation Shields (Adiabatic Stages) */}
+               <div className={`absolute inset-0 border-[16px] border-zinc-700/50 transition-opacity duration-500 ${(phase === 1 || phase === 3) ? 'opacity-100' : 'opacity-0'}`} />
+
+               {/* Piston */}
+               <div 
+                 className="absolute w-full h-10 bg-gradient-to-b from-zinc-600 to-zinc-800 border-b-4 border-zinc-900 transition-all duration-100 z-20 flex items-center justify-center shadow-xl"
+                 style={{ bottom: `${V}%` }}
+               >
+                  <div className="w-12 h-1 bg-white/20 rounded-full" />
+                  {/* Piston Rod */}
+                  <div className="absolute bottom-full w-6 h-[400px] bg-zinc-700 border-x-4 border-zinc-900 flex justify-center">
+                     <div className="w-1 h-full bg-white/5" />
+                  </div>
+               </div>
+            </div>
+
+            {/* Reservoir Indicators */}
+            <div className="mt-12 flex items-center gap-16">
+               <div className={`flex flex-col items-center gap-2 transition-all duration-500 ${phase === 0 ? 'scale-110 opacity-100' : 'opacity-30'}`}>
+                  <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center">
+                     <Flame className="w-6 h-6 text-rose-500" />
+                  </div>
+                  <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Q_h (Input)</span>
+               </div>
+               <div className={`flex flex-col items-center gap-2 transition-all duration-500 ${phase === 2 ? 'scale-110 opacity-100' : 'opacity-30'}`}>
+                  <div className="w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-500/50 flex items-center justify-center">
+                     <Droplets className="w-6 h-6 text-sky-500" />
+                  </div>
+                  <span className="text-[10px] font-black text-sky-500 uppercase tracking-widest">Q_c (Output)</span>
+               </div>
+            </div>
+         </div>
 
       </div>
 
-      <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 glass-card flex flex-col h-full z-10">
-        <div className="p-4 border-b border-white/10"><h3 className="font-semibold text-white">Siklus Mesin Carnot</h3></div>
-        <div className="p-6 flex-1 overflow-y-auto space-y-6">
-          
-          <button onClick={() => setIsRunning(!isRunning)} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors">
-            {isRunning ? <Pause className="w-4 h-4"/> : <Play className="w-4 h-4"/>}
-            {isRunning ? 'Jeda Siklus' : 'Mulai Siklus'}
-          </button>
+      {/* SIDEBAR PANEL */}
+      <div className="w-full lg:w-80 z-20 flex flex-col bg-zinc-900/50 backdrop-blur-3xl border-l border-white/10 overflow-y-auto custom-scrollbar shadow-2xl">
+        <div className="p-6 space-y-6 pt-20">
+           
+           {/* Efficiency Card */}
+           <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-3xl text-center shadow-inner relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+              <div className="text-[10px] text-emerald-500 font-black uppercase tracking-widest mb-2">Efisiensi Siklus (η)</div>
+              <div className="text-5xl font-black text-white">
+                {(efficiency * 100).toFixed(1)}<span className="text-xl text-zinc-500">%</span>
+              </div>
+              <div className="mt-4 h-1.5 w-full bg-emerald-500/10 rounded-full overflow-hidden">
+                 <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${efficiency * 100}%` }} />
+              </div>
+           </div>
 
-          <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl text-center shadow-inner mt-4">
-            <div className="text-xs text-emerald-400 font-bold mb-1">Efisiensi Maksimal (η)</div>
-            <div className="text-4xl font-mono text-white">{(efficiency * 100).toFixed(1)}<span className="text-xl text-zinc-400">%</span></div>
-          </div>
+           {/* Current Process Card */}
+           <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                 <Settings className="w-4 h-4 text-zinc-500" />
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Tahapan Siklus</span>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                 {[
+                   { id: 0, title: "Ekspansi Isotermal", color: "border-rose-500 text-rose-500" },
+                   { id: 1, title: "Ekspansi Adiabatik", color: "border-zinc-500 text-zinc-500" },
+                   { id: 2, title: "Kompresi Isotermal", color: "border-sky-500 text-sky-500" },
+                   { id: 3, title: "Kompresi Adiabatik", color: "border-zinc-500 text-zinc-500" }
+                 ].map(s => (
+                   <div key={s.id} className={`p-3 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${phase === s.id ? `${s.color} bg-white/5` : 'border-white/5 text-zinc-600 opacity-50'}`}>
+                      {s.id + 1}. {s.title}
+                   </div>
+                 ))}
+              </div>
+           </div>
 
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <div className="flex justify-between"><label className="text-sm text-rose-400 font-bold">Suhu Reservoir Panas (Th)</label><span className="text-rose-400 font-mono">{Th} K</span></div>
-              <input type="range" className="w-full accent-rose-500" min="400" max="1000" step="10" value={Th} onChange={(e) => {if(parseInt(e.target.value) > Tc) setTh(parseInt(e.target.value))}} />
-            </div>
+           {/* Input Section */}
+           <div className="space-y-6 pt-2">
+              <div className="flex items-center gap-2 mb-1">
+                 <Thermometer className="w-4 h-4 text-zinc-500" />
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Kontrol Termal</span>
+              </div>
+              
+              <div className="space-y-4">
+                 <div className="flex justify-between items-center px-1">
+                    <label className="text-[9px] font-bold text-rose-500 uppercase tracking-widest">Reservoir Panas (Th): {Th} K</label>
+                 </div>
+                 <input 
+                   type="range" 
+                   className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-rose-500" 
+                   min="400" max="1000" step="50" value={Th} 
+                   onChange={(e) => {
+                      const v = parseInt(e.target.value);
+                      if (v > Tc) setTh(v);
+                   }} 
+                 />
+                 <div className="flex justify-between items-center px-1">
+                    <label className="text-[9px] font-bold text-sky-500 uppercase tracking-widest">Reservoir Dingin (Tc): {Tc} K</label>
+                 </div>
+                 <input 
+                   type="range" 
+                   className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-sky-500" 
+                   min="100" max="400" step="50" value={Tc} 
+                   onChange={(e) => {
+                      const v = parseInt(e.target.value);
+                      if (v < Th) setTc(v);
+                   }} 
+                 />
+              </div>
+           </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between"><label className="text-sm text-blue-400 font-bold">Suhu Reservoir Dingin (Tc)</label><span className="text-blue-400 font-mono">{Tc} K</span></div>
-              <input type="range" className="w-full accent-blue-500" min="100" max="500" step="10" value={Tc} onChange={(e) => {if(parseInt(e.target.value) < Th) setTc(parseInt(e.target.value))}} />
-            </div>
-          </div>
+                      {/* Physics Insight */}
+           <div className="p-5 bg-black/30 rounded-2xl border border-white/5 space-y-4 shadow-xl">
+              <div className="flex items-center gap-2">
+                 <ShieldAlert className="w-4 h-4 text-amber-400" />
+                 <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">Wawasan Fisika</span>
+              </div>
+              <p className="text-[10px] text-zinc-500 leading-relaxed italic">
+                 "Mesin Carnot adalah siklus termodinamika teoritis paling efisien, terdiri dari proses ekspansi/kompresi isotermal dan adiabatik reversibel."
+              </p>
+           </div>
 
-          <div className="p-4 bg-black/30 rounded-xl border border-white/5 space-y-2 text-xs text-zinc-400 leading-relaxed">
-            <p><strong>Mesin Carnot</strong> adalah mesin kalor teoretis dengan efisiensi paling tinggi yang mungkin dicapai.</p>
-            <p>Efisiensi 100% mustahil dicapai karena Suhu Dingin (Tc) tidak akan pernah mencapai 0 Kelvin (Hukum ke-3 Termodinamika).</p>
-            <div className="font-mono text-white mt-2">η = 1 - (Tc / Th)</div>
-          </div>
-
+           <div className="pt-6 border-t border-white/5 space-y-3">
+              <button onClick={() => setIsRunning(!isRunning)} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl ${isRunning ? 'bg-zinc-800 text-zinc-400' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}>
+                {isRunning ? <Pause className="w-5 h-5"/> : <Play className="w-5 h-5 fill-current"/>}
+                {isRunning ? 'Jeda Siklus' : 'Mulai Siklus'}
+              </button>
+              <button onClick={reset} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all flex items-center justify-center gap-2 text-sm">
+                 <RotateCcw className="w-4 h-4" /> Reset Parameter
+              </button>
+           </div>
         </div>
       </div>
     </div>

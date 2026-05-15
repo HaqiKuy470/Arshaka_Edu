@@ -1,25 +1,43 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Play, Pause, RotateCcw, ChevronLeft, Zap, Move, ShieldAlert, Timer, Ruler, Droplets, Waves, Gauge, Thermometer, Box, Activity, ChevronRight, Flame, Settings, Share2, Lock, Unlock, Magnet, Target, Sparkles, Battery, Lightbulb, RefreshCcw, Sun, Filter, Microscope, Rocket, Clock, Globe } from "lucide-react";
+import Link from "next/link";
+
+interface Star {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export default function RelativitasKhusus() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isRunning, setIsRunning] = useState(true);
   
-  const [velocityPercent, setVelocityPercent] = useState(50); // % of c (speed of light)
-  const v = (velocityPercent / 100); // 0 to 0.99c
+  // Parameters
+  const [velocity, setVelocity] = useState(0.8); // 0 to 0.999c
+  const [showStarfield, setShowStarfield] = useState(true);
 
-  // Lorentz Factor (Gamma)
-  // gamma = 1 / sqrt(1 - v^2/c^2)
-  const gamma = 1 / Math.sqrt(1 - v * v);
+  const animationRef = useRef(0);
+  const timeRef = useRef(0);
+  const starsRef = useRef<Star[]>([]);
 
-  // Time Dilation: t = t0 * gamma
-  // Length Contraction: L = L0 / gamma
+  // Lorentz Calculations
+  const gamma = 1 / Math.sqrt(1 - velocity * velocity);
+  const lengthFactor = 1 / gamma;
 
-  const [t0] = useState(1); // 1 tick proper time
-  const tExpanded = t0 * gamma; // Time relative to stationary observer
-
-  const [L0] = useState(100); // 100px proper length
-  const LContracted = L0 / gamma;
+  useEffect(() => {
+    // Init stars
+    const s: Star[] = [];
+    for (let i = 0; i < 400; i++) {
+       s.push({
+          x: (Math.random() - 0.5) * 2000,
+          y: (Math.random() - 0.5) * 2000,
+          z: Math.random() * 2000
+       });
+    }
+    starsRef.current = s;
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -27,125 +45,238 @@ export default function RelativitasKhusus() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let animationId: number;
-    let frame = 0;
-
     const render = () => {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
-      const w = canvas.width;
+      const sidebarWidth = window.innerWidth >= 1024 ? 320 : 0;
+      const arenaW = canvas.width - sidebarWidth;
+      const arenaH = canvas.height;
+      const cx = arenaW / 2;
+      const cy = arenaH / 2;
 
-      // 1. Stationary Observer (Top Half)
-      ctx.fillStyle = "white"; ctx.font = "14px sans-serif";
-      ctx.fillText("Pengamat Diam (Di Bumi)", 20, 30);
-      
-      // Moving Ship seen by stationary observer
-      const shipSpeed = v * 5; // visual speed
-      const xPos = (frame * shipSpeed) % (w + 200) - 100;
-      
-      ctx.fillStyle = "#3b82f6"; // Blue ship
-      // Ship length is contracted
-      ctx.fillRect(xPos, 60, LContracted, 30);
-      // Windows
-      ctx.fillStyle = "white";
-      ctx.fillRect(xPos + 5, 70, LContracted*0.2, 10);
-      ctx.fillRect(xPos + LContracted*0.75, 70, LContracted*0.2, 10);
+      if (isRunning) timeRef.current += 0.02;
+      const t = timeRef.current;
 
-      // Light clock in moving ship (seen from Earth) -> diagonal path
-      ctx.strokeStyle = "#fcd34d"; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(xPos, 50); ctx.lineTo(xPos - 50, 50); ctx.stroke(); // visual trail just for fun
-
-      // 2. Observer Inside Ship (Bottom Half)
-      ctx.fillStyle = "white"; ctx.font = "14px sans-serif";
-      ctx.fillText("Pengamat Bergerak (Di Pesawat)", 20, cy + 30);
-      
-      ctx.fillStyle = "#ef4444"; // Red stationary ship relative to himself
-      // Ship length is proper length (L0)
-      ctx.fillRect(w/2 - L0/2, cy + 60, L0, 30);
-      ctx.fillStyle = "white";
-      ctx.fillRect(w/2 - L0/2 + 5, cy + 70, L0*0.2, 10);
-      ctx.fillRect(w/2 - L0/2 + L0*0.75, cy + 70, L0*0.2, 10);
-
-      // Clock visualizations
-      // Ticking rate: Inside ship = normal. Outside ship = slow.
-      const tickInside = (frame % 60) / 60; // 0 to 1 every 60 frames
-      const tickOutside = (frame % (60 * gamma)) / (60 * gamma); 
-
-      // Draw clocks
-      const drawClock = (x: number, y: number, progress: number, label: string) => {
-        ctx.beginPath(); ctx.arc(x, y, 20, 0, Math.PI*2); ctx.strokeStyle="white"; ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.sin(progress*Math.PI*2)*15, y - Math.cos(progress*Math.PI*2)*15); ctx.strokeStyle="#ef4444"; ctx.stroke();
-        ctx.fillStyle = "white"; ctx.fillText(label, x - 20, y + 35);
+      // --- Draw Starfield (Stationary Observer perspective) ---
+      if (showStarfield) {
+         ctx.save();
+         ctx.translate(cx, cy);
+         const speedFactor = velocity * 40;
+         starsRef.current.forEach(s => {
+            s.z -= speedFactor;
+            if (s.z <= 1) s.z = 2000;
+            
+            const px = s.x / (s.z / 1000);
+            const py = s.y / (s.z / 1000);
+            const size = (1 - s.z / 2000) * 3;
+            const alpha = 1 - s.z / 2000;
+            
+            // Relativistic stretch
+            const stretch = velocity * 50 * (1 - s.z / 2000);
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.beginPath();
+            ctx.ellipse(px, py, size + stretch, size, 0, 0, Math.PI * 2);
+            ctx.fill();
+         });
+         ctx.restore();
       }
 
-      drawClock(w - 100, 70, tickOutside, "Jam Pesawat (dilihat dari Bumi)");
-      drawClock(w - 100, cy + 70, tickInside, "Jam Pesawat (dilihat Pilot)");
+      // --- Draw Optical Bench / Reference Frames ---
+      // Frame 1: Earth (Stationary)
+      const frameHeight = 220;
+      const earthY = cy - 150;
+      const shipY = cy + 150;
 
-      frame++;
-      animationId = requestAnimationFrame(render);
+      // Background Frames
+      ctx.fillStyle = "rgba(255, 255, 255, 0.02)";
+      ctx.roundRect(50, earthY - frameHeight/2, arenaW - 100, frameHeight, 20);
+      ctx.roundRect(50, shipY - frameHeight/2, arenaW - 100, frameHeight, 20);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.05)"; ctx.stroke();
+
+      // --- Draw Earth Observation (Stationary Frame) ---
+      const earthClockX = 150;
+      const earthClockT = t;
+      drawHoloClock(ctx, earthClockX, earthY, earthClockT, "JAM BUMI (PROPER TIME)", "#10b981");
+
+      // --- Draw Moving Spaceship (Observed from Earth) ---
+      const shipProperL = 160;
+      const shipObservedL = shipProperL * lengthFactor;
+      const shipSpeed = velocity * 15;
+      const shipX = (t * shipSpeed * 20) % (arenaW + 400) - 200;
+      
+      ctx.save();
+      ctx.translate(shipX, earthY);
+      drawSpaceship(ctx, shipObservedL, "#38bdf8", true);
+      ctx.restore();
+
+      // --- Draw Pilot Observation (Moving Frame) ---
+      const pilotClockX = 150;
+      const pilotClockT = t; // To the pilot, his own clock is normal
+      drawHoloClock(ctx, pilotClockX, shipY, pilotClockT, "JAM PILOT (PROPER TIME)", "#38bdf8");
+
+      // Ship stays stationary in its own frame
+      ctx.save();
+      ctx.translate(cx, shipY);
+      drawSpaceship(ctx, shipProperL, "#38bdf8", false);
+      ctx.restore();
+
+      // --- Secondary Clock: Earth's view of Pilot Clock ---
+      const earthViewOfPilotX = arenaW - 150;
+      const dilutedT = t / gamma; // Time dilation: observed time is slower
+      drawHoloClock(ctx, earthViewOfPilotX, earthY, dilutedT, "JAM PILOT (DILATASI)", "#f43f5e");
+
+      // Labels
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.font = "bold 9px Inter"; ctx.textAlign = "left";
+      ctx.fillText("PERSPEKTIF PENGAMAT DIAM (BUMI)", 70, earthY - 80);
+      ctx.fillText("PERSPEKTIF PENGAMAT BERGERAK (PILOT)", 70, shipY - 80);
     };
 
-    render();
-    return () => cancelAnimationFrame(animationId);
-  }, [v, LContracted, gamma, L0]);
+    const drawHoloClock = (ctx: CanvasRenderingContext2D, x: number, y: number, time: number, label: string, color: string) => {
+       ctx.save();
+       ctx.translate(x, y);
+       ctx.strokeStyle = color;
+       ctx.lineWidth = 2;
+       ctx.shadowBlur = 10; ctx.shadowColor = color;
+       
+       // Outer ring
+       ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI * 2); ctx.stroke();
+       ctx.setLineDash([2, 5]);
+       ctx.beginPath(); ctx.arc(0, 0, 42, 0, Math.PI * 2); ctx.stroke();
+       ctx.setLineDash([]);
+
+       // Hands
+       ctx.beginPath(); ctx.moveTo(0, 0); 
+       ctx.lineTo(Math.sin(time * 2) * 20, -Math.cos(time * 2) * 20);
+       ctx.stroke();
+       
+       ctx.fillStyle = "white"; ctx.font = "bold 8px Inter"; ctx.textAlign = "center";
+       ctx.fillText(label, 0, 60);
+       ctx.restore();
+    };
+
+    const drawSpaceship = (ctx: CanvasRenderingContext2D, length: number, color: string, stretched: boolean) => {
+       ctx.save();
+       ctx.shadowBlur = 20; ctx.shadowColor = color;
+       ctx.fillStyle = "rgba(24, 24, 27, 0.9)";
+       ctx.beginPath();
+       ctx.moveTo(-length/2, -15);
+       ctx.lineTo(length/2 - 20, -15);
+       ctx.lineTo(length/2, 0);
+       ctx.lineTo(length/2 - 20, 15);
+       ctx.lineTo(-length/2, 15);
+       ctx.closePath();
+       ctx.fill();
+       ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+       
+       // Thruster glow
+       const thrusterGrad = ctx.createLinearGradient(-length/2, 0, -length/2 - 40, 0);
+       thrusterGrad.addColorStop(0, color);
+       thrusterGrad.addColorStop(1, "transparent");
+       ctx.fillStyle = thrusterGrad;
+       ctx.fillRect(-length/2 - 40, -10, 40, 20);
+       ctx.restore();
+    };
+
+    const animate = () => { render(); animationRef.current = requestAnimationFrame(animate); };
+    animationRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [isRunning, velocity, showStarfield, gamma, lengthFactor]);
+
+  const reset = () => {
+    setVelocity(0.8);
+    timeRef.current = 0;
+  };
 
   return (
-    <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
-      <div className="flex-1 relative flex items-center justify-center bg-zinc-950 min-h-[50vh] lg:min-h-0">
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+    <div className="fixed inset-0 bg-zinc-950 flex flex-col lg:flex-row overflow-hidden font-sans select-none touch-none text-white">
+      <canvas ref={canvasRef} className="absolute inset-0 z-0" />
+
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 h-16 px-6 flex items-center justify-between z-30 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
+        <div className="flex items-center gap-4 pointer-events-auto">
+          <Link href="/simulasi" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 text-white transition-all">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex flex-col">
+             <h1 className="text-lg font-bold text-white tracking-tight leading-none">Relativitas Khusus</h1>
+             <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-[0.2em] mt-1">Albert Einstein • Dilatasi Waktu • Kontraksi Panjang</span>
+          </div>
+        </div>
       </div>
 
-      <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 glass-card flex flex-col h-full z-10">
-        <div className="p-4 border-b border-white/10"><h3 className="font-semibold text-white">Relativitas Khusus (Einstein)</h3></div>
-        <div className="p-6 flex-1 overflow-y-auto space-y-6">
-          
-          <div className="space-y-2 pt-2">
-            <div className="flex justify-between">
-              <label className="text-sm font-bold text-sky-400">Kecepatan Pesawat (v)</label>
-              <span className="font-mono text-sky-400">{v.toFixed(2)} c</span>
-            </div>
-            <input 
-              type="range" className="w-full accent-sky-500" 
-              min="0" max="99" step="1" 
-              value={velocityPercent} 
-              onChange={(e) => setVelocityPercent(parseInt(e.target.value))} 
-            />
-            <p className="text-[10px] text-zinc-500 text-right">c = Kecepatan Cahaya</p>
-          </div>
+      <div className="flex-1 relative pointer-events-none" />
 
-          <div className="bg-black/40 border border-white/10 p-4 rounded-xl shadow-inner mt-4 space-y-4">
-            <div className="flex justify-between items-center text-xs font-bold text-zinc-300">
-              <span>Faktor Lorentz (γ)</span>
-              <span className="font-mono text-lg text-white">{gamma.toFixed(2)}</span>
-            </div>
-            
-            <div className="pt-2 border-t border-zinc-800">
-              <div className="text-[10px] uppercase text-zinc-500 mb-1">Kontraksi Panjang (Length Contraction)</div>
-              <div className="flex justify-between items-end">
-                <span>Panjang Pesawat:</span>
-                <span className="font-mono text-rose-400 text-lg">{LContracted.toFixed(0)} <span className="text-sm">m</span></span>
+      {/* SIDEBAR PANEL */}
+      <div className="w-full lg:w-80 z-20 flex flex-col bg-zinc-900/50 backdrop-blur-3xl border-l border-white/10 overflow-y-auto custom-scrollbar shadow-2xl">
+        <div className="p-6 space-y-6 pt-20">
+           
+           {/* Gamma HUD */}
+           <div className="bg-white/5 border border-white/10 p-6 rounded-3xl space-y-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                 <Zap className="w-12 h-12 text-white" />
               </div>
-              <div className="text-[10px] text-right text-zinc-600">(Asli: 100 m)</div>
-            </div>
-
-            <div className="pt-2 border-t border-zinc-800">
-              <div className="text-[10px] uppercase text-zinc-500 mb-1">Dilatasi Waktu (Time Dilation)</div>
-              <div className="flex justify-between items-end">
-                <span>1 Tahun di Pesawat =</span>
-                <span className="font-mono text-emerald-400 text-lg">{tExpanded.toFixed(2)} <span className="text-sm">Tahun Bumi</span></span>
+              <div className="flex justify-between items-center border-b border-white/5 pb-3">
+                 <div className="flex flex-col">
+                    <span className="text-[8px] text-zinc-500 uppercase font-black tracking-widest mb-1">Faktor Lorentz (γ)</span>
+                    <span className="text-3xl font-black text-white">{gamma.toFixed(3)}</span>
+                 </div>
               </div>
-            </div>
-          </div>
+              <div className="flex justify-between items-center">
+                 <div className="flex flex-col">
+                    <span className="text-[8px] text-zinc-500 uppercase font-black tracking-widest mb-1">Kontraksi Panjang</span>
+                    <span className="text-xl font-black text-rose-400">{Math.round(lengthFactor * 100)}%</span>
+                 </div>
+                 <Ruler className="w-5 h-5 text-rose-400" />
+              </div>
+           </div>
 
-          <div className="p-4 bg-black/30 rounded-xl border border-white/5 space-y-3 text-xs text-zinc-300 leading-relaxed mt-4">
-            <p><strong>Postulat Relativitas Khusus:</strong> Kecepatan cahaya (c) selalu konstan bagi semua pengamat.</p>
-            <p>Akibatnya, jika sesuatu bergerak mendekati kecepatan cahaya, maka waktu akan berjalan lebih lambat (Dilatasi Waktu) dan panjang benda akan terlihat menyusut (Kontraksi Panjang) bagi pengamat yang diam.</p>
-          </div>
+           {/* Velocity Slider */}
+           <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-2 mb-1">
+                 <Gauge className="w-4 h-4 text-zinc-500" />
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Kecepatan (v/c)</span>
+              </div>
+              
+              <div className="bg-white/5 p-5 rounded-3xl border border-white/10 space-y-6">
+                 <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                       <span className="text-xs font-black text-sky-400">{velocity.toFixed(3)} c</span>
+                       <span className="text-[8px] text-zinc-500 uppercase font-bold">Warp Speed</span>
+                    </div>
+                    <input type="range" className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer accent-sky-400" min="0" max="0.999" step="0.001" value={velocity} onChange={(e) => setVelocity(parseFloat(e.target.value))} />
+                 </div>
+              </div>
+           </div>
 
+           {/* Analysis Insight */}
+           <div className="p-5 bg-black/30 rounded-2xl border border-white/5 space-y-4 shadow-xl">
+              <div className="flex items-center gap-2">
+                 <ShieldAlert className="w-4 h-4 text-amber-400" />
+                 <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">Wawasan Einstein</span>
+              </div>
+              <div className="space-y-3 text-[10px] text-zinc-500 leading-relaxed italic">
+                 <p>
+                    <strong className="text-zinc-300">Dilatasi Waktu:</strong> Bagi pengamat di Bumi, jam di dalam pesawat yang bergerak cepat terlihat berdetak lebih lambat.
+                 </p>
+                 <p>
+                    <strong className="text-zinc-300">Massa Relativistik:</strong> Semakin mendekati kecepatan cahaya, massa efektif benda akan meningkat secara drastis hingga tak terhingga pada v = c.
+                 </p>
+              </div>
+           </div>
+
+           <div className="pt-6 border-t border-white/5 flex gap-2">
+              <button onClick={() => setIsRunning(!isRunning)} className="flex-1 py-4 bg-white hover:bg-zinc-200 text-black font-black rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg">
+                 {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                 {isRunning ? "PAUSE" : "START"}
+              </button>
+              <button onClick={reset} className="p-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl border border-white/5 transition-all">
+                 <RotateCcw className="w-4 h-4" />
+              </button>
+           </div>
         </div>
       </div>
     </div>

@@ -1,17 +1,43 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronLeft, Zap, Move, ShieldAlert, Timer, Ruler, Droplets, Waves, Gauge, Thermometer, Box, Activity, ChevronRight, Flame, Settings, Share2, Lock, Unlock, Magnet, Target, Sparkles, Battery, ZapOff, Cpu, RefreshCw } from "lucide-react";
+import Link from "next/link";
+
+type ComponentType = "R" | "L" | "C";
 
 export default function RangkaianAC() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isRunning, setIsRunning] = useState(true);
   
+  // Parameters
   const [frequency, setFrequency] = useState(50); // Hz
-  const [component, setComponent] = useState<"R" | "L" | "C">("R");
-
-  const animationRef = useRef(0);
+  const [component, setComponent] = useState<ComponentType>("R");
+  const [value, setValue] = useState(50); // R(Ω), L(mH), or C(μF)
+  
   const timeRef = useRef(0);
+  const animationRef = useRef(0);
+
+  // Constants
+  const V_max = 100;
+  
+  // Physics Calculation
+  const w = 2 * Math.PI * frequency;
+  let phase = 0; // Phase shift in radians
+  let reactance = 0;
+  
+  if (component === "R") {
+    reactance = value;
+    phase = 0;
+  } else if (component === "L") {
+    reactance = w * (value * 1e-3);
+    phase = -Math.PI / 2;
+  } else if (component === "C") {
+    reactance = 1 / (w * (value * 1e-6));
+    phase = Math.PI / 2;
+  }
+
+  const I_max = V_max / (reactance || 1);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -20,165 +46,276 @@ export default function RangkaianAC() {
     if (!ctx) return;
 
     const render = () => {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const cx = canvas.width / 2;
+      const sidebarWidth = window.innerWidth >= 1024 ? 320 : 0;
+      const cx = (canvas.width - sidebarWidth) / 2;
       const cy = canvas.height / 2;
 
-      // Angular frequency: w = 2 * PI * f. Visual scaling applied.
-      const w = frequency * 0.05; 
-      
-      // V(t) = Vmax * sin(w*t)
-      const vVal = Math.sin(timeRef.current * w);
-      
-      // I(t) Phase depends on component
-      // R: I is in phase with V -> sin(w*t)
-      // L: I lags V by 90 deg -> sin(w*t - PI/2) = -cos(w*t)
-      // C: I leads V by 90 deg -> sin(w*t + PI/2) = cos(w*t)
-      
-      let iVal = 0;
-      if (component === "R") iVal = Math.sin(timeRef.current * w);
-      else if (component === "L") iVal = -Math.cos(timeRef.current * w);
-      else if (component === "C") iVal = Math.cos(timeRef.current * w);
+      if (isRunning) timeRef.current += 0.016 * (frequency / 50);
 
-      // 1. Draw Graph V(t) and I(t)
-      const gw = 300; // graph width
-      const gh = 100; // graph height
-      const gx = cx - gw/2;
-      const gy = cy - 120; // top section
+      const t = timeRef.current;
+      const omega = 2 * Math.PI; // Normalized for visual loop
 
-      // Axes
-      ctx.strokeStyle = "rgba(255,255,255,0.2)";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx, gy + gh); ctx.stroke(); // Y
-      ctx.beginPath(); ctx.moveTo(gx, gy + gh/2); ctx.lineTo(gx + gw, gy + gh/2); ctx.stroke(); // X
+      // --- Draw Oscilloscope (Top) ---
+      const ow = 400;
+      const oh = 150;
+      const ox = cx - ow/2;
+      const oy = cy - 180;
+      
+      ctx.fillStyle = "#09090b";
+      ctx.fillRect(ox, oy, ow, oh);
+      ctx.strokeStyle = "#27272a";
+      ctx.lineWidth = 1;
+      // Grid
+      for(let i=0; i<=10; i++) {
+        ctx.beginPath(); ctx.moveTo(ox + i*(ow/10), oy); ctx.lineTo(ox + i*(ow/10), oy + oh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ox, oy + i*(oh/10)); ctx.lineTo(ox + ow, oy + i*(oh/10)); ctx.stroke();
+      }
 
+      // Sine Waves
       ctx.lineWidth = 3;
-      // Draw historical waves
-      ctx.beginPath(); ctx.strokeStyle = "#ef4444"; // Red = Voltage
-      for (let x = 0; x < gw; x++) {
-        // history time t = current - (gw - x)*scale
-        const t = timeRef.current - (gw - x)*0.02;
-        const v = Math.sin(t * w);
-        ctx.lineTo(gx + x, gy + gh/2 - v * (gh/2 - 10));
+      // Voltage Wave (Red)
+      ctx.beginPath();
+      ctx.strokeStyle = "#ef4444";
+      for (let x = 0; x < ow; x++) {
+        const val = Math.sin((x / ow) * 4 * Math.PI - t * 10);
+        ctx.lineTo(ox + x, oy + oh/2 - val * (oh/2 - 10));
       }
       ctx.stroke();
 
-      ctx.beginPath(); ctx.strokeStyle = "#3b82f6"; // Blue = Current
-      for (let x = 0; x < gw; x++) {
-        const t = timeRef.current - (gw - x)*0.02;
-        let c = 0;
-        if (component === "R") c = Math.sin(t * w);
-        else if (component === "L") c = -Math.cos(t * w);
-        else if (component === "C") c = Math.cos(t * w);
-        ctx.lineTo(gx + x, gy + gh/2 - c * (gh/2 - 20)); // current amplitude slightly smaller visually
+      // Current Wave (Blue)
+      ctx.beginPath();
+      ctx.strokeStyle = "#3b82f6";
+      for (let x = 0; x < ow; x++) {
+        const val = Math.sin((x / ow) * 4 * Math.PI - t * 10 + phase);
+        ctx.lineTo(ox + x, oy + oh/2 - val * (oh/2 - 25));
       }
       ctx.stroke();
 
-      // Legend
-      ctx.fillStyle = "#ef4444"; ctx.fillText("Voltase (V)", gx + 10, gy + 15);
-      ctx.fillStyle = "#3b82f6"; ctx.fillText("Arus (I)", gx + 10, gy + 30);
+      // --- Draw Phasor Diagram (Bottom Left) ---
+      const px = cx - 150;
+      const py = cy + 100;
+      const pr = 60;
+      ctx.strokeStyle = "#27272a";
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px-pr, py); ctx.lineTo(px+pr, py); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px, py-pr); ctx.lineTo(px, py+pr); ctx.stroke();
 
+      // V vector
+      const vAngle = -t * 10;
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#ef4444";
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + Math.cos(vAngle) * pr, py + Math.sin(vAngle) * pr);
+      ctx.stroke();
 
-      // 2. Draw Circuit
-      const cyCir = cy + 60; // bottom section
-      const rw = 200, rh = 100;
-      
-      ctx.strokeStyle = "#52525b"; ctx.lineWidth = 6;
-      ctx.strokeRect(cx - rw/2, cyCir - rh/2, rw, rh);
+      // I vector
+      ctx.strokeStyle = "#3b82f6";
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + Math.cos(vAngle - phase) * pr * 0.8, py + Math.sin(vAngle - phase) * pr * 0.8);
+      ctx.stroke();
 
-      // AC Source (Left)
-      ctx.fillStyle = "#18181b"; ctx.fillRect(cx - rw/2 - 20, cyCir - 20, 40, 40);
-      ctx.beginPath(); ctx.arc(cx - rw/2, cyCir, 20, 0, Math.PI*2); ctx.fill();
+      // --- Draw Circuit Diagram (Bottom Right) ---
+      const ctx_circ = cx + 150;
+      const cty_circ = cy + 100;
+      const cw = 160, ch = 80;
+      ctx.strokeStyle = "#3f3f46";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(ctx_circ - cw/2, cty_circ - ch/2, cw, ch);
+
+      // AC Source
+      ctx.fillStyle = "#09090b";
+      ctx.beginPath(); ctx.arc(ctx_circ - cw/2, cty_circ, 20, 0, Math.PI*2); ctx.fill();
       ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx - rw/2 - 10, cyCir); ctx.bezierCurveTo(cx - rw/2 - 5, cyCir - 10, cx - rw/2 + 5, cyCir + 10, cx - rw/2 + 10, cyCir); ctx.stroke(); // Sine wave icon
+      ctx.beginPath();
+      ctx.moveTo(ctx_circ - cw/2 - 10, cty_circ);
+      ctx.bezierCurveTo(ctx_circ - cw/2 - 5, cty_circ - 10, ctx_circ - cw/2 + 5, cty_circ + 10, ctx_circ - cw/2 + 10, cty_circ);
+      ctx.stroke();
 
-      // Component (Right)
-      ctx.fillStyle = "#18181b"; ctx.fillRect(cx + rw/2 - 25, cyCir - 40, 50, 80);
-      ctx.fillStyle = "white"; ctx.textAlign = "center";
+      // Component Icon
+      const ix = ctx_circ + cw/2;
+      const iy = cty_circ;
+      ctx.fillStyle = "#09090b"; ctx.fillRect(ix - 25, iy - 30, 50, 60);
       
       if (component === "R") {
-        ctx.beginPath(); ctx.strokeStyle = "#fcd34d"; ctx.lineWidth = 4;
-        ctx.moveTo(cx + rw/2, cyCir - 30);
-        for(let i=0; i<6; i++) ctx.lineTo(cx + rw/2 + (i%2===0?10:-10), cyCir - 30 + i*10 + 5);
-        ctx.lineTo(cx + rw/2, cyCir + 30); ctx.stroke();
-        ctx.fillText("Resistor", cx + rw/2 + 40, cyCir);
+        ctx.strokeStyle = "#fcd34d"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(ix, iy-20);
+        for(let i=0; i<6; i++) ctx.lineTo(ix + (i%2===0?10:-10), iy - 20 + i*8);
+        ctx.lineTo(ix, iy+20); ctx.stroke();
       } else if (component === "L") {
-        ctx.beginPath(); ctx.strokeStyle = "#fb923c"; ctx.lineWidth = 4;
-        ctx.moveTo(cx + rw/2, cyCir - 30);
-        for(let i=0; i<4; i++) { ctx.arc(cx + rw/2, cyCir - 20 + i*15, 8, -Math.PI/2, Math.PI/2, true); }
-        ctx.lineTo(cx + rw/2, cyCir + 30); ctx.stroke();
-        ctx.fillText("Induktor", cx + rw/2 + 40, cyCir);
+        ctx.strokeStyle = "#fb923c"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(ix, iy-25);
+        for(let i=0; i<4; i++) ctx.arc(ix, iy-15 + i*10, 6, -Math.PI/2, Math.PI/2, true);
+        ctx.lineTo(ix, iy+25); ctx.stroke();
       } else if (component === "C") {
-        ctx.beginPath(); ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 4;
-        ctx.moveTo(cx + rw/2, cyCir - 30); ctx.lineTo(cx + rw/2, cyCir - 10);
-        ctx.moveTo(cx + rw/2 - 15, cyCir - 10); ctx.lineTo(cx + rw/2 + 15, cyCir - 10); // top plate
-        ctx.moveTo(cx + rw/2 - 15, cyCir + 10); ctx.lineTo(cx + rw/2 + 15, cyCir + 10); // bot plate
-        ctx.moveTo(cx + rw/2, cyCir + 10); ctx.lineTo(cx + rw/2, cyCir + 30);
+        ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(ix, iy-20); ctx.lineTo(ix, iy-5);
+        ctx.moveTo(ix-12, iy-5); ctx.lineTo(ix+12, iy-5);
+        ctx.moveTo(ix-12, iy+5); ctx.lineTo(ix+12, iy+5);
+        ctx.moveTo(ix, iy+5); ctx.lineTo(ix, iy+20);
         ctx.stroke();
-        ctx.fillText("Kapasitor", cx + rw/2 + 45, cyCir);
       }
 
-      // Arrows indicating Current direction and magnitude
-      const arrowLen = Math.abs(iVal) * 30;
-      if (arrowLen > 2) {
-        ctx.beginPath();
-        ctx.strokeStyle = "#3b82f6"; ctx.lineWidth = 6;
-        
-        // top wire
-        const dir = iVal > 0 ? 1 : -1;
-        ctx.moveTo(cx - 50, cyCir - rh/2);
-        ctx.lineTo(cx - 50 + dir*arrowLen, cyCir - rh/2);
-        ctx.stroke();
-        ctx.beginPath(); ctx.fillStyle = "#3b82f6";
-        ctx.moveTo(cx - 50 + dir*arrowLen, cyCir - rh/2 - 6); ctx.lineTo(cx - 50 + dir*arrowLen + dir*10, cyCir - rh/2); ctx.lineTo(cx - 50 + dir*arrowLen, cyCir - rh/2 + 6); ctx.fill();
+      // Electrons
+      const currentInst = Math.sin(t * 10 - phase);
+      const numElectrons = 15;
+      const perimeter = 2 * (cw + ch);
+      ctx.fillStyle = "#fbbf24";
+      for (let i = 0; i < numElectrons; i++) {
+        // Base position + oscillating offset
+        const baseDist = i * (perimeter / numElectrons);
+        const offset = currentInst * 20;
+        const dist = (baseDist + offset + perimeter) % perimeter;
+        let ex, ey;
+        if (dist < cw) { ex = ctx_circ - cw/2 + dist; ey = cty_circ - ch/2; }
+        else if (dist < cw + ch) { ex = ctx_circ + cw/2; ey = cty_circ - ch/2 + (dist - cw); }
+        else if (dist < 2*cw + ch) { ex = ctx_circ + cw/2 - (dist - cw - ch); ey = cty_circ + ch/2; }
+        else { ex = ctx_circ - cw/2; ey = cty_circ + ch/2 - (dist - 2*cw - ch); }
+        ctx.beginPath(); ctx.arc(ex, ey, 3, 0, Math.PI*2); ctx.fill();
       }
-
-      if (isRunning) timeRef.current += 1;
-      animationRef.current = requestAnimationFrame(render);
     };
 
-    render();
+    const animate = () => { render(); animationRef.current = requestAnimationFrame(animate); };
+    animationRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationRef.current);
-  }, [isRunning, frequency, component]);
+  }, [isRunning, frequency, component, value, phase]);
 
   return (
-    <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
-      <div className="flex-1 relative flex items-center justify-center bg-zinc-950 min-h-[50vh] lg:min-h-0">
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+    <div className="fixed inset-0 bg-zinc-950 flex flex-col lg:flex-row overflow-hidden font-sans select-none touch-none">
+      <canvas ref={canvasRef} className="absolute inset-0 z-0" />
+
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 h-16 px-6 flex items-center justify-between z-30 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
+        <div className="flex items-center gap-4 pointer-events-auto">
+          <Link href="/simulasi" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 text-white transition-all">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex flex-col">
+             <h1 className="text-lg font-bold text-white tracking-tight leading-none">Rangkaian Arus Bolak-Balik</h1>
+             <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-[0.2em] mt-1">Impedansi • Diagram Fasor • AC Circuits</span>
+          </div>
+        </div>
+        <button onClick={() => setIsRunning(!isRunning)} className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 text-white transition-all pointer-events-auto">
+          {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+        </button>
       </div>
 
-      <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 glass-card flex flex-col h-full z-10">
-        <div className="p-4 border-b border-white/10"><h3 className="font-semibold text-white">Rangkaian Arus Bolak-Balik (AC)</h3></div>
-        <div className="p-6 flex-1 overflow-y-auto space-y-6">
-          
-          <button onClick={() => setIsRunning(!isRunning)} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors">
-            {isRunning ? <Pause className="w-4 h-4"/> : <Play className="w-4 h-4"/>}
-            {isRunning ? 'Jeda Simulasi' : 'Jalankan Simulasi'}
-          </button>
+      <div className="flex-1 relative pointer-events-none" />
 
-          <div className="space-y-3 pt-2">
-            <h4 className="font-bold text-sm text-zinc-300">Pilih Komponen</h4>
-            <div className="flex flex-col gap-2">
-              <button onClick={() => setComponent("R")} className={`py-2 rounded border font-bold ${component === 'R' ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'border-white/10 text-zinc-400 hover:bg-white/5'}`}>Resistor (R)</button>
-              <button onClick={() => setComponent("L")} className={`py-2 rounded border font-bold ${component === 'L' ? 'bg-orange-500/20 border-orange-500/50 text-orange-400' : 'border-white/10 text-zinc-400 hover:bg-white/5'}`}>Induktor (L)</button>
-              <button onClick={() => setComponent("C")} className={`py-2 rounded border font-bold ${component === 'C' ? 'bg-sky-500/20 border-sky-500/50 text-sky-400' : 'border-white/10 text-zinc-400 hover:bg-white/5'}`}>Kapasitor (C)</button>
-            </div>
-          </div>
+      {/* SIDEBAR PANEL */}
+      <div className="w-full lg:w-80 z-20 flex flex-col bg-zinc-900/50 backdrop-blur-3xl border-l border-white/10 overflow-y-auto custom-scrollbar shadow-2xl">
+        <div className="p-6 space-y-6 pt-20">
+           
+           {/* Component Selector */}
+           <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                 <Box className="w-4 h-4 text-zinc-500" />
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Pilih Komponen</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                 {(["R", "L", "C"] as ComponentType[]).map(c => (
+                   <button 
+                     key={c} 
+                     onClick={() => { setComponent(c); setValue(c === "R" ? 50 : c === "L" ? 100 : 47); }} 
+                     className={`py-3 rounded-xl text-xs font-black transition-all border ${component === c ? 'bg-white/10 border-white/30 text-white shadow-lg scale-105' : 'bg-transparent border-white/5 text-zinc-500 opacity-50'}`}
+                   >
+                      {c === "R" ? "Resistor" : c === "L" ? "Induktor" : "Kapasitor"}
+                   </button>
+                 ))}
+              </div>
+           </div>
 
-          <div className="space-y-2 pt-4 border-t border-white/10">
-            <div className="flex justify-between"><label className="text-sm text-white font-bold">Frekuensi AC (Hz)</label><span className="text-white font-mono">{frequency} Hz</span></div>
-            <input type="range" className="w-full accent-white" min="10" max="100" step="5" value={frequency} onChange={(e) => setFrequency(parseInt(e.target.value))} />
-          </div>
+           {/* Analysis Panel */}
+           <div className="bg-indigo-500/5 border border-indigo-500/10 p-5 rounded-3xl space-y-4">
+              <div className="flex justify-between items-center border-b border-white/5 pb-3">
+                 <div className="flex flex-col">
+                    <span className="text-[8px] text-zinc-500 uppercase font-black tracking-widest">Impedansi (Z)</span>
+                    <span className="text-xl font-black text-white">{reactance.toFixed(1)} <span className="text-[10px] text-zinc-500 font-normal">Ω</span></span>
+                 </div>
+                 <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-indigo-400" />
+                 </div>
+              </div>
+              <div className="flex justify-between items-center">
+                 <div className="flex flex-col">
+                    <span className="text-[8px] text-zinc-500 uppercase font-black tracking-widest">Phase Angle (φ)</span>
+                    <span className={`text-xl font-black ${phase === 0 ? 'text-white' : phase > 0 ? 'text-sky-400' : 'text-orange-400'}`}>
+                      {(phase * 180 / Math.PI).toFixed(0)}°
+                    </span>
+                 </div>
+                 <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-tighter">
+                   {phase === 0 ? "In Phase" : phase > 0 ? "Leading" : "Lagging"}
+                 </span>
+              </div>
+           </div>
 
-          <div className="p-4 bg-black/30 rounded-xl border border-white/5 space-y-2 text-xs text-zinc-300 leading-relaxed mt-4">
-            {component === "R" && <p><strong>Resistif Murni:</strong> Tegangan dan Arus sefase (berada pada titik puncak dan nol secara bersamaan).</p>}
-            {component === "L" && <p><strong>Induktif Murni:</strong> Arus tertinggal (lagging) 90° terhadap Tegangan. Tegangan mencapai puncak mendahului arus.</p>}
-            {component === "C" && <p><strong>Kapasitif Murni:</strong> Arus mendahului (leading) 90° terhadap Tegangan. Arus memuncak sebelum tegangan.</p>}
-          </div>
+           {/* Parameter Controls */}
+           <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-2 mb-1">
+                 <Settings className="w-4 h-4 text-zinc-500" />
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Kontrol Sirkuit</span>
+              </div>
+              
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/5 space-y-4">
+                 <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                       <label className="text-[9px] font-bold text-zinc-400 uppercase">Frequency (f)</label>
+                       <span className="text-xs font-mono text-white">{frequency} Hz</span>
+                    </div>
+                    <input type="range" className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-white" min="10" max="200" step="5" value={frequency} onChange={(e) => setFrequency(parseInt(e.target.value))} />
+                 </div>
 
+                 <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                       <label className="text-[9px] font-bold text-zinc-400 uppercase">
+                         {component === "R" ? "Resistance (R)" : component === "L" ? "Inductance (L)" : "Capacitance (C)"}
+                       </label>
+                       <span className="text-xs font-mono text-white">{value} {component === "R" ? "Ω" : component === "L" ? "mH" : "μF"}</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      className={`w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer ${component === 'R' ? 'accent-amber-400' : component === 'L' ? 'accent-orange-400' : 'accent-sky-400'}`} 
+                      min="1" max="200" value={value} 
+                      onChange={(e) => setValue(parseInt(e.target.value))} 
+                    />
+                 </div>
+              </div>
+           </div>
+
+           {/* Insights */}
+           <div className="p-5 bg-black/30 rounded-2xl border border-white/5 space-y-3">
+              <div className="flex items-center gap-2">
+                 <RefreshCw className="w-4 h-4 text-indigo-400 animate-spin-slow" />
+                 <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">Sifat AC</span>
+              </div>
+              <p className="text-[9px] text-zinc-500 leading-relaxed">
+                {component === "R" && "Pada Resistor, tegangan dan arus sefase (φ = 0°). Energi diubah menjadi panas."}
+                {component === "L" && "Pada Induktor, arus tertinggal (Lagging) 90° terhadap tegangan karena GGL balik."}
+                {component === "C" && "Pada Kapasitor, arus mendahului (Leading) 90° terhadap tegangan saat pengisian muatan."}
+              </p>
+           </div>
+
+                      {/* Physics Insight */}
+           <div className="p-5 bg-black/30 rounded-2xl border border-white/5 space-y-4 shadow-xl">
+              <div className="flex items-center gap-2">
+                 <ShieldAlert className="w-4 h-4 text-amber-400" />
+                 <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">Wawasan Fisika</span>
+              </div>
+              <p className="text-[10px] text-zinc-500 leading-relaxed italic">
+                 "Dalam arus AC, polaritas berosilasi bolak-balik. Komponen Induktor membuat fasa arus tertinggal (lagging), sedangkan Kapasitor membuatnya mendahului (leading)."
+              </p>
+           </div>
+
+           <div className="pt-6 border-t border-white/5">
+              <button onClick={() => { setFrequency(50); setComponent("R"); setValue(50); }} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all text-xs font-bold flex items-center justify-center gap-2">
+                 <RotateCcw className="w-3 h-3" /> Reset Simulasi
+              </button>
+           </div>
         </div>
       </div>
     </div>

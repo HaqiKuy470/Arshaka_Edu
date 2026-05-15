@@ -1,40 +1,51 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronLeft, Zap, Move, ShieldAlert, Timer, Ruler, Droplets, Waves, Gauge, Thermometer, Box, Activity, ChevronRight, Flame, Settings, Share2, Lock, Unlock, Magnet, Target, Sparkles, Battery, Lightbulb, RefreshCcw, Sun, Filter, Microscope, ZapOff } from "lucide-react";
+import Link from "next/link";
+
+type Metal = { name: string; phi: number; color: string };
+const METALS: Metal[] = [
+  { name: "Sodium", phi: 2.28, color: "#cbd5e1" },
+  { name: "Zinc", phi: 4.33, color: "#94a3b8" },
+  { name: "Copper", phi: 4.70, color: "#b45309" },
+  { name: "Platinum", phi: 6.35, color: "#e2e8f0" },
+];
+
+function nmToRGB(wavelength: number): string {
+    let r, g, b;
+    if (wavelength >= 380 && wavelength < 440) {
+        r = (-(wavelength - 440) / (440 - 380)); g = 0; b = 1;
+    } else if (wavelength >= 440 && wavelength < 490) {
+        r = 0; g = (wavelength - 440) / (490 - 440); b = 1;
+    } else if (wavelength >= 490 && wavelength < 510) {
+        r = 0; g = 1; b = (-(wavelength - 510) / (510 - 490));
+    } else if (wavelength >= 510 && wavelength < 580) {
+        r = (wavelength - 510) / (580 - 510); g = 1; b = 0;
+    } else if (wavelength >= 580 && wavelength < 645) {
+        r = 1; g = (-(wavelength - 645) / (645 - 580)); b = 0;
+    } else if (wavelength >= 645 && wavelength <= 780) {
+        r = 1; g = 0; b = 0;
+    } else {
+        r = 0.5; g = 0.5; b = 1.0; // UV-ish
+    }
+    return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+}
 
 export default function EfekFotolistrik() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isRunning, setIsRunning] = useState(true);
   
+  // Parameters
   const [wavelength, setWavelength] = useState(400); // nm
   const [intensity, setIntensity] = useState(50); // %
-  const [voltage, setVoltage] = useState(0); // V (Stopping potential)
-  const [material, setMaterial] = useState("Sodium");
+  const [voltage, setVoltage] = useState(0); // V
+  const [metal, setMetal] = useState(METALS[0]);
 
-  // Work functions (eV)
-  const workFunctions: Record<string, number> = {
-    Sodium: 2.28,
-    Zinc: 4.33,
-    Copper: 4.70,
-    Platinum: 6.35,
-  };
-
-  const wf = workFunctions[material];
-
-  // Energy of photon E = hc / lambda (in eV)
-  // hc = 1240 eV nm
-  const photonEnergy = 1240 / wavelength;
-
-  // Kinetic energy of emitted electrons: K_max = E - wf - V_stop
-  // Note: stopping potential (voltage < 0) reduces kinetic energy
-  // If voltage > 0, it accelerates them (no effect on K_max for emission, just speed later)
-  const K_max = photonEnergy - wf + voltage;
-  const isEmitting = photonEnergy > wf;
-  const doesReachAnode = K_max > 0;
-
-  const photonsRef = useRef<{x: number, y: number}[]>([]);
-  const electronsRef = useRef<{x: number, y: number, v: number}[]>([]);
+  const photonsRef = useRef<{x: number, y: number, vx: number, vy: number}[]>([]);
+  const electronsRef = useRef<{x: number, y: number, vx: number, vy: number, life: number}[]>([]);
+  const animationRef = useRef(0);
+  const timeRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -42,183 +53,287 @@ export default function EfekFotolistrik() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    let animationId: number;
-
     const render = () => {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const w = canvas.width;
-      const h = canvas.height;
-      const cy = h / 2;
+      const sidebarWidth = window.innerWidth >= 1024 ? 320 : 0;
+      const arenaW = canvas.width - sidebarWidth;
+      const arenaH = canvas.height;
+      const cx = arenaW / 2;
+      const cy = arenaH / 2;
 
-      // Color of light based on wavelength
-      let rgb = "255, 255, 255";
-      if (wavelength >= 650) rgb = "239, 68, 68"; // Red
-      else if (wavelength >= 550) rgb = "234, 179, 8"; // Yellow
-      else if (wavelength >= 450) rgb = "59, 130, 246"; // Blue
-      else rgb = "168, 85, 247"; // Violet/UV
+      if (isRunning) timeRef.current += 1;
 
-      // Draw Vacuum Tube
-      ctx.strokeStyle = "rgba(255,255,255,0.4)";
-      ctx.lineWidth = 4;
+      // Physics Constants
+      const h_eV_s = 4.135e-15;
+      const c = 3e8;
+      const E_photon = 1240 / wavelength; // eV
+      const K_max = E_photon - metal.phi;
+      const isEmissionPossible = K_max > 0;
+
+      // --- Draw Vacuum Tube ---
+      const tubeW = 400;
+      const tubeH = 200;
+      const tubeX = cx - tubeW/2;
+      const tubeY = cy - tubeH/2;
+
+      const tubeGrad = ctx.createLinearGradient(tubeX, tubeY, tubeX, tubeY + tubeH);
+      tubeGrad.addColorStop(0, "rgba(255, 255, 255, 0.05)");
+      tubeGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.1)");
+      tubeGrad.addColorStop(1, "rgba(255, 255, 255, 0.05)");
+      ctx.fillStyle = tubeGrad;
+      ctx.roundRect(tubeX, tubeY, tubeW, tubeH, 40);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.2)"; ctx.lineWidth = 2; ctx.stroke();
+
+      // Electrodes
+      const cathX = tubeX + 40;
+      const anodeX = tubeX + tubeW - 40;
+      
+      // Cathode (Metal Plate)
+      ctx.fillStyle = metal.color;
+      ctx.shadowBlur = 10; ctx.shadowColor = metal.color;
+      ctx.roundRect(cathX - 10, cy - 60, 20, 120, 4);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Anode (Target)
+      ctx.fillStyle = "#52525b";
+      ctx.roundRect(anodeX - 10, cy - 60, 20, 120, 4);
+      ctx.fill();
+
+      // --- Emission Logic ---
+      if (isRunning) {
+         // Emit Photons
+         if (timeRef.current % Math.floor(11 - intensity/10) === 0) {
+            photonsRef.current.push({
+               x: cx - 300,
+               y: cy - 150 + Math.random() * 50,
+               vx: 4,
+               vy: 2
+            });
+         }
+
+         // Update Photons
+         photonsRef.current = photonsRef.current.filter(p => {
+            p.x += p.vx; p.y += p.vy;
+            // Check hit cathode
+            if (p.x >= cathX - 10 && p.x <= cathX + 10 && p.y >= cy - 60 && p.y <= cy + 60) {
+               if (isEmissionPossible) {
+                  // Emit Electron
+                  const speed = Math.sqrt(K_max) * 5;
+                  electronsRef.current.push({
+                     x: cathX + 10,
+                     y: p.y,
+                     vx: speed,
+                     vy: (Math.random() - 0.5) * 1,
+                     life: 1.0
+                  });
+               }
+               return false;
+            }
+            return p.x < arenaW && p.y < arenaH;
+         });
+
+         // Update Electrons
+         electronsRef.current = electronsRef.current.filter(e => {
+            // Apply E-field force (acceleration = V/d)
+            const accel = voltage * 0.05;
+            e.vx += accel;
+            e.x += e.vx;
+            e.y += e.vy;
+            
+            if (e.x >= anodeX - 10) return false; // Hit anode
+            if (e.x <= cathX - 10) return false; // Hit cathode back
+            return e.x < arenaW && e.x > 0;
+         });
+      }
+
+      // --- Draw Particles ---
+      // Photons
+      const photonColor = nmToRGB(wavelength);
+      photonsRef.current.forEach(p => {
+         ctx.shadowBlur = 10; ctx.shadowColor = photonColor;
+         ctx.fillStyle = photonColor;
+         ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.shadowBlur = 0;
+
+      // Electrons
+      electronsRef.current.forEach(e => {
+         ctx.shadowBlur = 15; ctx.shadowColor = "#38bdf8";
+         ctx.fillStyle = "#38bdf8"; // sky-400
+         ctx.beginPath(); ctx.arc(e.x, e.y, 3, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.shadowBlur = 0;
+
+      // --- Draw Circuit ---
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(w/2, cy - 30, 200, 80, 0, 0, Math.PI*2);
+      ctx.moveTo(cathX, cy + 60); ctx.lineTo(cathX, cy + 180); ctx.lineTo(anodeX, cy + 180); ctx.lineTo(anodeX, cy + 60);
       ctx.stroke();
 
-      // Cathode (Left)
-      const cathX = w/2 - 150;
-      ctx.fillStyle = "#94a3b8"; // zinc-400
-      ctx.fillRect(cathX, cy - 70, 20, 80);
-      ctx.fillStyle = "white"; ctx.font = "12px sans-serif"; ctx.fillText(material, cathX - 40, cy - 80);
+      // Ammeter
+      const currentActive = isEmissionPossible && electronsRef.current.length > 0;
+      ctx.fillStyle = "#18181b";
+      ctx.beginPath(); ctx.arc(cx, cy + 180, 25, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = currentActive ? "#4ade80" : "rgba(255, 255, 255, 0.2)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = currentActive ? "#4ade80" : "#52525b";
+      ctx.font = "bold 10px Inter"; ctx.textAlign = "center";
+      ctx.fillText("A", cx, cy + 184);
 
-      // Anode (Right)
-      const anodeX = w/2 + 150;
-      ctx.fillStyle = "#52525b"; // zinc-600
-      ctx.fillRect(anodeX - 20, cy - 70, 20, 80);
-
-      // Light Source emitting photons
-      if (isRunning) {
-        if (Math.random() < intensity / 100) {
-          photonsRef.current.push({ x: w/2 - 50, y: cy - 180 + Math.random()*20 });
-        }
-      }
-
-      // Draw and update Photons
-      ctx.fillStyle = `rgba(${rgb}, 0.8)`;
-      for (let i = photonsRef.current.length - 1; i >= 0; i--) {
-        const p = photonsRef.current[i];
-        p.x -= 3; // move diagonally towards cathode
-        p.y += 3;
-        
-        ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
-        
-        // If hits cathode
-        if (p.x <= cathX + 20 && p.y > cy - 70 && p.y < cy + 10) {
-          photonsRef.current.splice(i, 1);
-          // Emit electron?
-          if (isEmitting && isRunning) {
-            // Speed depends on K_max roughly
-            let v = Math.max(0.1, K_max * 2);
-            electronsRef.current.push({ x: cathX + 20, y: p.y, v: v });
-          }
-        } else if (p.y > cy + 100 || p.x < 0) {
-          photonsRef.current.splice(i, 1);
-        }
-      }
-
-      // Draw and update Electrons
-      ctx.fillStyle = "#fcd34d"; // amber-300
-      for (let i = electronsRef.current.length - 1; i >= 0; i--) {
-        const e = electronsRef.current[i];
-        
-        // Acceleration / Deceleration due to voltage
-        // E field = V / d. If V is negative, it pushes electrons back.
-        e.v += (voltage * 0.05);
-        e.x += e.v;
-
-        ctx.beginPath(); ctx.arc(e.x, e.y, 3, 0, Math.PI*2); ctx.fill();
-
-        // If electron turns around due to stopping potential
-        if (e.x <= cathX + 20 && e.v < 0) {
-          electronsRef.current.splice(i, 1); // absorbed back
-        } else if (e.x >= anodeX - 20) {
-          electronsRef.current.splice(i, 1); // hits anode, creates current
-        }
-      }
-
-      // Draw Circuit (bottom)
-      ctx.strokeStyle = "rgba(255,255,255,0.4)";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(cathX + 10, cy + 10); ctx.lineTo(cathX + 10, cy + 120); ctx.lineTo(w/2 - 20, cy + 120); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(anodeX - 10, cy + 10); ctx.lineTo(anodeX - 10, cy + 120); ctx.lineTo(w/2 + 20, cy + 120); ctx.stroke();
-
-      // Battery
-      ctx.fillStyle = "#18181b"; ctx.fillRect(w/2 - 20, cy + 100, 40, 40);
-      ctx.strokeStyle = "white"; ctx.strokeRect(w/2 - 20, cy + 100, 40, 40);
-      ctx.fillStyle = "white"; ctx.textAlign="center"; ctx.fillText(`${voltage}V`, w/2, cy + 125);
-
-      // Info
-      ctx.fillStyle = "white"; ctx.textAlign="left";
-      ctx.fillText(`Energi Foton: ${photonEnergy.toFixed(2)} eV`, 20, 20);
-      ctx.fillText(`Fungsi Kerja: ${wf.toFixed(2)} eV`, 20, 40);
-      ctx.fillText(`Max K.E.: ${Math.max(0, photonEnergy - wf).toFixed(2)} eV`, 20, 60);
-
-      animationId = requestAnimationFrame(render);
+      // --- Labels ---
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.font = "bold 9px Inter";
+      ctx.textAlign = "left";
+      ctx.fillText("SUMBER FOTON", cx - 300, cy - 160);
+      ctx.textAlign = "center";
+      ctx.fillText("TABUNG VACUUM", cx, cy - 110);
     };
 
-    render();
-    return () => cancelAnimationFrame(animationId);
-  }, [isRunning, wavelength, intensity, voltage, material]);
+    const animate = () => { render(); animationRef.current = requestAnimationFrame(animate); };
+    animationRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [isRunning, wavelength, intensity, voltage, metal]);
+
+  const reset = () => {
+    setWavelength(400);
+    setIntensity(50);
+    setVoltage(0);
+    setMetal(METALS[0]);
+    photonsRef.current = [];
+    electronsRef.current = [];
+  };
+
+  const E_photon = (1240 / wavelength).toFixed(2);
+  const K_max = (parseFloat(E_photon) - metal.phi).toFixed(2);
+  const currentActive = parseFloat(E_photon) > metal.phi && (voltage > -parseFloat(K_max));
 
   return (
-    <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
-      <div className="flex-1 relative flex items-center justify-center bg-zinc-950 min-h-[50vh] lg:min-h-0">
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+    <div className="fixed inset-0 bg-zinc-950 flex flex-col lg:flex-row overflow-hidden font-sans select-none touch-none">
+      <canvas ref={canvasRef} className="absolute inset-0 z-0" />
+
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 h-16 px-6 flex items-center justify-between z-30 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
+        <div className="flex items-center gap-4 pointer-events-auto">
+          <Link href="/simulasi" className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 text-white transition-all">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex flex-col">
+             <h1 className="text-lg font-bold text-white tracking-tight leading-none">Efek Fotolistrik</h1>
+             <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-[0.2em] mt-1">Dualisme Partikel • Einstein • Vacuum Tube</span>
+          </div>
+        </div>
       </div>
 
-      <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 glass-card flex flex-col h-full z-10">
-        <div className="p-4 border-b border-white/10"><h3 className="font-semibold text-white">Efek Fotolistrik</h3></div>
-        <div className="p-6 flex-1 overflow-y-auto space-y-6">
-          
-          <div className={`p-4 rounded-xl text-center border-2 transition-all ${isEmitting && doesReachAnode ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-red-500/20 border-red-500/50 text-red-400'}`}>
-            <div className="text-xs uppercase tracking-wider mb-1">Status Arus (Amperemeter)</div>
-            <div className="text-2xl font-bold">{isEmitting && doesReachAnode ? "MENGALIR" : "NOL"}</div>
-          </div>
+      <div className="flex-1 relative pointer-events-none" />
 
-          <div className="space-y-4 pt-4">
-            
-            <div className="space-y-2">
-              <div className="flex justify-between"><label className="text-sm font-bold text-white">Logam Katoda (Fungsi Kerja)</label></div>
-              <select 
-                className="w-full bg-zinc-800 text-white p-2 rounded border border-zinc-700"
-                value={material} onChange={(e) => setMaterial(e.target.value)}
-              >
-                <option value="Sodium">Sodium (2.28 eV)</option>
-                <option value="Zinc">Zinc (4.33 eV)</option>
-                <option value="Copper">Tembaga (4.70 eV)</option>
-                <option value="Platinum">Platinum (6.35 eV)</option>
-              </select>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <div className="flex justify-between">
-                <label className="text-sm text-sky-400 font-bold">Panjang Gelombang Cahaya (λ)</label>
-                <span className="text-sky-400 font-mono">{wavelength} nm</span>
+      {/* SIDEBAR PANEL */}
+      <div className="w-full lg:w-80 z-20 flex flex-col bg-zinc-900/50 backdrop-blur-3xl border-l border-white/10 overflow-y-auto custom-scrollbar shadow-2xl">
+        <div className="p-6 space-y-6 pt-20">
+           
+           {/* Status Card */}
+           <div className={`p-6 rounded-3xl border transition-all duration-500 text-center relative overflow-hidden ${currentActive ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+              <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-2">Aliran Arus</div>
+              <div className={`text-2xl font-black ${currentActive ? 'text-emerald-400' : 'text-rose-500'}`}>
+                 {currentActive ? 'MENGALIR' : 'NOL'}
               </div>
-              <input 
-                type="range" className="w-full" style={{ accentColor: wavelength >= 650 ? 'red' : wavelength >= 550 ? 'yellow' : wavelength >= 450 ? 'blue' : 'purple' }}
-                min="200" max="700" step="10" 
-                value={wavelength} onChange={(e) => setWavelength(parseInt(e.target.value))} 
-              />
-              <p className="text-[10px] text-zinc-500">Makin pendek λ, makin besar energi foton.</p>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <div className="flex justify-between">
-                <label className="text-sm text-amber-400 font-bold">Intensitas Cahaya</label>
-                <span className="text-amber-400 font-mono">{intensity}%</span>
+              <div className="mt-4 flex items-center justify-center gap-2">
+                 {currentActive ? <Activity className="w-4 h-4 text-emerald-400 animate-pulse" /> : <ZapOff className="w-4 h-4 text-rose-500" />}
+                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                   {currentActive ? 'Elektron Terdeteksi' : 'Potensial Terhenti'}
+                 </span>
               </div>
-              <input type="range" className="w-full accent-amber-500" min="0" max="100" step="10" value={intensity} onChange={(e) => setIntensity(parseInt(e.target.value))} />
-            </div>
+           </div>
 
-            <div className="space-y-2 pt-2">
-              <div className="flex justify-between">
-                <label className="text-sm text-rose-400 font-bold">Voltase Baterai (V)</label>
-                <span className="text-rose-400 font-mono">{voltage.toFixed(1)} V</span>
+           {/* Energy HUD */}
+           <div className="bg-white/5 border border-white/10 p-5 rounded-3xl grid grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                 <span className="text-[8px] text-zinc-500 uppercase font-black tracking-widest mb-1">E Foton (hf)</span>
+                 <span className="text-sm font-black text-white">{E_photon} eV</span>
               </div>
-              <input type="range" className="w-full accent-rose-500" min="-5" max="5" step="0.1" value={voltage} onChange={(e) => setVoltage(parseFloat(e.target.value))} />
-              <p className="text-[10px] text-zinc-500">Nilai negatif adalah *Stopping Potential* (menahan laju elektron).</p>
-            </div>
+              <div className="flex flex-col text-right">
+                 <span className="text-[8px] text-zinc-500 uppercase font-black tracking-widest mb-1">K.E. Max</span>
+                 <span className="text-sm font-black text-sky-400">{Math.max(0, parseFloat(K_max)).toFixed(2)} eV</span>
+              </div>
+           </div>
 
-          </div>
+           {/* Controls */}
+           <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-2 mb-1">
+                 <Settings className="w-4 h-4 text-zinc-500" />
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Konfigurasi Eksperimen</span>
+              </div>
+              
+              <div className="bg-white/5 p-4 rounded-3xl border border-white/10 space-y-5">
+                 <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Panjang Gelombang (λ)</label>
+                       <span className="text-xs font-mono" style={{ color: nmToRGB(wavelength) }}>{wavelength} nm</span>
+                    </div>
+                    <input type="range" className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer" min="200" max="750" value={wavelength} onChange={(e) => setWavelength(parseInt(e.target.value))} />
+                 </div>
 
-          <div className="p-4 bg-black/30 rounded-xl border border-white/5 space-y-3 text-xs text-zinc-300 leading-relaxed mt-4">
-            <p><strong>Efek Fotolistrik (Einstein):</strong> Bukti bahwa cahaya adalah partikel (Foton).</p>
-            <p>Elektron hanya akan lepas jika Energi Foton &gt; Fungsi Kerja logam, tidak peduli seberapa terang intensitas cahayanya!</p>
-          </div>
+                 <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Intensitas (Jumlah Foton)</label>
+                       <span className="text-xs font-mono text-amber-400">{intensity}%</span>
+                    </div>
+                    <input type="range" className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-amber-500" min="0" max="100" step="10" value={intensity} onChange={(e) => setIntensity(parseInt(e.target.value))} />
+                 </div>
 
+                 <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                       <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Tegangan (Voltase)</label>
+                       <span className="text-xs font-mono text-rose-400">{voltage.toFixed(1)} V</span>
+                    </div>
+                    <input type="range" className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-rose-500" min="-5" max="5" step="0.1" value={voltage} onChange={(e) => setVoltage(parseFloat(e.target.value))} />
+                 </div>
+              </div>
+           </div>
+
+           {/* Metal Selection */}
+           <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                 <Filter className="w-4 h-4 text-zinc-500" />
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Pilih Logam Katoda</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                 {METALS.map(m => (
+                   <button key={m.name} onClick={() => setMetal(m)} className={`py-3 rounded-xl text-[9px] font-black uppercase transition-all border ${metal.name === m.name ? 'bg-white/10 border-white/30 text-white shadow-lg' : 'bg-transparent border-white/5 text-zinc-600'}`}>
+                      {m.name} ({m.phi}eV)
+                   </button>
+                 ))}
+              </div>
+           </div>
+
+           {/* Physics Insight */}
+           <div className="p-5 bg-black/30 rounded-2xl border border-white/5 space-y-4 shadow-xl">
+              <div className="flex items-center gap-2">
+                 <Sun className="w-4 h-4 text-amber-400" />
+                 <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">Wawasan Einstein</span>
+              </div>
+              <div className="space-y-3 text-[10px] text-zinc-500 leading-relaxed italic">
+                 <p>
+                    <strong className="text-zinc-300">Dualisme:</strong> Elektron hanya akan lepas jika <span className="text-white">E Foton &gt; Fungsi Kerja</span>. Menaikkan intensitas hanya menambah jumlah elektron, tapi tidak menambah kecepatannya.
+                 </p>
+                 <p>
+                    <strong className="text-zinc-300">Stopping Potential:</strong> Tegangan negatif dapat menghentikan laju elektron tercepat sekalipun.
+                 </p>
+              </div>
+           </div>
+
+           <div className="pt-6 border-t border-white/5">
+              <button onClick={reset} className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg border border-white/5">
+                 <RotateCcw className="w-4 h-4" /> Reset Eksperimen
+              </button>
+           </div>
         </div>
       </div>
     </div>
