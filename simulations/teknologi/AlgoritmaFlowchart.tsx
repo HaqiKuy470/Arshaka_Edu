@@ -1,238 +1,361 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
+import {
+  ChevronLeft,
+  Play,
+  RotateCcw,
+  Cpu,
+  Variable,
+  CheckCircle2,
+  Activity,
+  MousePointer2,
+  Code2,
+  Database,
+} from "lucide-react";
+import Link from "next/link";
+
+// --- Types ---
+type VariableState = {
+  air: number;
+  kopi: number;
+  gula: number;
+  status: string;
+};
+
+// Node ids: 0=Mulai, 1=Rebus, 2=Kopi, 3=Decision, 4=Gula, 5=Seduh, 6=Selesai
+const PATH_SWEET = [0, 1, 2, 3, 4, 5, 6];
+const PATH_NO_SWEET = [0, 1, 2, 3, 5, 6];
 
 export default function AlgoritmaFlowchart() {
-  const [step, setStep] = useState(0);
+  const [activeIdx, setActiveIdx] = useState<number>(-1);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [variables, setVariables] = useState({ air: 0, kopi: 0, gula: 0, status: "Belum Siap" });
-
-  const flowchartSteps = [
-    { id: 0, type: "terminal", label: "Mulai", action: () => setVariables({ air: 0, kopi: 0, gula: 0, status: "Persiapan" }) },
-    { id: 1, type: "process", label: "Rebus Air hingga mendidih", action: () => setVariables(v => ({...v, air: 100})) },
-    { id: 2, type: "io", label: "Masukkan 1 sendok Kopi", action: () => setVariables(v => ({...v, kopi: 1})) },
-    { id: 3, type: "decision", label: "Suka Manis?", isDecision: true },
-    { id: 4, type: "io", label: "Masukkan 2 sendok Gula", action: () => setVariables(v => ({...v, gula: 2})), branch: "YA" },
-    { id: 5, type: "process", label: "Aduk hingga rata", action: () => setVariables(v => ({...v, status: "Diaduk..."})) },
-    { id: 6, type: "io", label: "Tuang air panas", action: () => setVariables(v => ({...v, status: "Diseduh"})) },
-    { id: 7, type: "terminal", label: "Kopi Siap Diminum", action: () => setVariables(v => ({...v, status: "☕ Kopi Selesai!"})) }
-  ];
-
-  // Execution path logic (if like sweet: 0->1->2->3->4->5->6->7, if not: 0->1->2->3->5->6->7)
-  const executionPathYes = [0, 1, 2, 3, 4, 6, 5, 7];
-  const executionPathNo = [0, 1, 2, 3, 6, 5, 7]; // skipping sugar
-
-  const [path, setPath] = useState(executionPathYes);
-  const [pathIdx, setPathIdx] = useState(0);
   const [likeSweet, setLikeSweet] = useState(true);
+  const [pathStep, setPathStep] = useState(0);
+  const [variables, setVariables] = useState<VariableState>({
+    air: 0,
+    kopi: 0,
+    gula: 0,
+    status: "Standby",
+  });
+
+  const executionPath = useMemo(
+    () => (likeSweet ? PATH_SWEET : PATH_NO_SWEET),
+    [likeSweet]
+  );
+
+  // Completed set — which node IDs have already been visited
+  const completedNodes = useMemo(
+    () => new Set(executionPath.slice(0, pathStep)),
+    [executionPath, pathStep]
+  );
 
   useEffect(() => {
-     let timer: NodeJS.Timeout;
-     if (isPlaying) {
-        timer = setTimeout(() => {
-           if (pathIdx < path.length - 1) {
-              const nextStepId = path[pathIdx + 1];
-              setPathIdx(p => p + 1);
-              setStep(nextStepId);
-              if (flowchartSteps[nextStepId].action) {
-                 flowchartSteps[nextStepId].action!();
-              }
-           } else {
-              setIsPlaying(false);
-           }
-        }, 1500);
-     }
-     return () => clearTimeout(timer);
-  }, [isPlaying, pathIdx, path, flowchartSteps]);
+    let timer: NodeJS.Timeout;
+    if (isPlaying && pathStep < executionPath.length) {
+      timer = setTimeout(() => {
+        const nodeId = executionPath[pathStep];
+        setActiveIdx(nodeId);
+        setVariables((prev) => {
+          const next = { ...prev };
+          switch (nodeId) {
+            case 0: next.status = "Inisialisasi..."; break;
+            case 1: next.air = 100; next.status = "Memanaskan..."; break;
+            case 2: next.kopi = 1; next.status = "Menambah Kopi"; break;
+            case 3: next.status = "Mengecek IF/ELSE"; break;
+            case 4: next.gula = 2; next.status = "Menambah Gula"; break;
+            case 5: next.status = "Pencampuran..."; break;
+            case 6: next.status = "☕ SELESAI!"; break;
+          }
+          return next;
+        });
+        setPathStep((s) => s + 1);
+      }, 1200);
+    } else if (pathStep >= executionPath.length && isPlaying) {
+      setIsPlaying(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isPlaying, pathStep, executionPath]);
 
-  const handleReset = () => {
-     setIsPlaying(false);
-     setPathIdx(0);
-     setStep(0);
-     setVariables({ air: 0, kopi: 0, gula: 0, status: "Belum Siap" });
-     setPath(likeSweet ? executionPathYes : executionPathNo);
+  const reset = () => {
+    setIsPlaying(false);
+    setPathStep(0);
+    setActiveIdx(-1);
+    setVariables({ air: 0, kopi: 0, gula: 0, status: "Standby" });
   };
 
-  const toggleSweet = () => {
-     const newVal = !likeSweet;
-     setLikeSweet(newVal);
-     setPath(newVal ? executionPathYes : executionPathNo);
-     setPathIdx(0);
-     setStep(0);
-     setVariables({ air: 0, kopi: 0, gula: 0, status: "Belum Siap" });
-  };
-
-  const getShapeClasses = (type: string, isActive: boolean) => {
-     const base = `flex items-center justify-center p-4 text-center text-sm font-bold transition-all duration-300 relative border-2 shadow-lg w-48 z-10`;
-     const color = isActive ? "bg-emerald-500 text-white border-emerald-300 scale-110 shadow-[0_0_20px_rgba(16,185,129,0.8)]" : "bg-zinc-800 text-zinc-300 border-zinc-600";
-     
-     switch(type) {
-        case "terminal": return `${base} ${color} rounded-full`; // Oval
-        case "process": return `${base} ${color} rounded`; // Rectangle
-        case "io": return `${base} ${color} transform -skew-x-12`; // Parallelogram
-        case "decision": return `${base} ${color} rotate-45 aspect-square w-32`; // Diamond
-        default: return `${base} ${color}`;
-     }
-  };
+  // SVG node styling helpers
+  const nodeFill  = (id: number) => activeIdx === id ? "#6366f1" : "#27272a";
+  const nodeStroke= (id: number) => activeIdx === id ? "#818cf8" : "#3f3f46";
+  const textFill  = (id: number) => activeIdx === id ? "#fff" : "#a1a1aa";
+  const showCheck = (id: number) => completedNodes.has(id);
 
   return (
-    <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
-      <div className="flex-1 relative flex flex-col items-center bg-zinc-950 p-4 lg:p-8 overflow-y-auto">
-        
-        <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-8 items-start">
-           
-           {/* Flowchart Visualizer */}
-           <div className="flex-1 flex flex-col items-center relative">
-              <h2 className="text-2xl font-bold text-white mb-8">Flowchart Membuat Kopi</h2>
+    <div className="flex flex-col lg:flex-row h-screen bg-[#050505] text-zinc-300 overflow-hidden font-sans">
 
-              {/* Central Line */}
-              <div className="absolute top-[80px] bottom-[40px] left-1/2 w-1 bg-zinc-700 -translate-x-1/2 z-0" />
-
-              <div className="flex flex-col items-center gap-8 relative z-10">
-                 {/* Step 0 */}
-                 <div className={getShapeClasses("terminal", step === 0)}>{flowchartSteps[0].label}</div>
-                 
-                 {/* Step 1 */}
-                 <div className={getShapeClasses("process", step === 1)}>{flowchartSteps[1].label}</div>
-                 
-                 {/* Step 2 */}
-                 <div className={getShapeClasses("io", step === 2)}>
-                    <div className="skew-x-12">{flowchartSteps[2].label}</div>
-                 </div>
-
-                 {/* Step 3 (Decision) */}
-                 <div className="relative mt-4 mb-4">
-                    <div className={getShapeClasses("decision", step === 3)}>
-                       <div className="-rotate-45">{flowchartSteps[3].label}</div>
-                    </div>
-                    {/* YES Branch */}
-                    <div className={`absolute top-1/2 -right-32 w-32 h-1 -translate-y-1/2 ${step===3 && likeSweet ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-zinc-700'}`}>
-                       <span className={`absolute -top-6 left-1/2 -translate-x-1/2 font-bold text-xs ${step===3 && likeSweet ? 'text-emerald-400' : 'text-zinc-500'}`}>YA</span>
-                    </div>
-                    {/* NO Branch */}
-                    <div className={`absolute top-full left-1/2 h-16 w-1 -translate-x-1/2 ${step===3 && !likeSweet ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-zinc-700'}`}>
-                       <span className={`absolute top-2 -right-8 font-bold text-xs ${step===3 && !likeSweet ? 'text-emerald-400' : 'text-zinc-500'}`}>TIDAK</span>
-                    </div>
-                 </div>
-
-                 {/* Flex row for branches */}
-                 <div className="flex gap-16 relative">
-                    {/* Step 6 & 5 (Main Line - No Sugar) */}
-                    <div className="flex flex-col items-center gap-8 mt-4">
-                       <div className={getShapeClasses("io", step === 6)}>
-                          <div className="skew-x-12">{flowchartSteps[6].label}</div>
-                       </div>
-                       <div className={getShapeClasses("process", step === 5)}>{flowchartSteps[5].label}</div>
-                    </div>
-
-                    {/* Step 4 (Yes Sugar Branch) */}
-                    <div className="absolute -top-4 -right-12 translate-x-full">
-                       <div className={getShapeClasses("io", step === 4)}>
-                          <div className="skew-x-12">{flowchartSteps[4].label}</div>
-                       </div>
-                       {/* Line back to main */}
-                       <div className={`absolute top-full left-1/2 h-16 w-1 -translate-x-1/2 ${step===4 ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-zinc-700'}`} />
-                       <div className={`absolute top-[calc(100%+4rem)] right-1/2 w-48 h-1 ${step===4 ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-zinc-700'}`} />
-                    </div>
-                 </div>
-
-                 {/* Step 7 (End) */}
-                 <div className={getShapeClasses("terminal", step === 7)}>{flowchartSteps[7].label}</div>
-              </div>
-
-           </div>
-
-           {/* Execution Memory / State */}
-           <div className="w-full lg:w-80 flex flex-col gap-6 sticky top-8">
-              
-              <div className="bg-zinc-900 border border-white/10 p-6 rounded-2xl shadow-xl">
-                 <h3 className="font-bold text-white mb-4 border-b border-white/10 pb-2">Status Variabel (Memori)</h3>
-                 <div className="space-y-4 font-mono text-sm">
-                    <div className="flex justify-between items-center">
-                       <span className="text-blue-400">Air:</span>
-                       <span className="text-white bg-black px-2 py-1 rounded">{variables.air}°C</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                       <span className="text-amber-700">Kopi:</span>
-                       <span className="text-white bg-black px-2 py-1 rounded">{variables.kopi} Sdk</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                       <span className="text-white">Gula:</span>
-                       <span className="text-white bg-black px-2 py-1 rounded">{variables.gula} Sdk</span>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-white/10 text-center">
-                       <span className="block text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Kondisi Saat Ini:</span>
-                       <span className={`font-bold text-lg ${step === 7 ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`}>{variables.status}</span>
-                    </div>
-                 </div>
-              </div>
-
-              {/* Controls */}
-              <div className="flex gap-2">
-                 {!isPlaying && pathIdx === 0 && (
-                    <button onClick={() => { setIsPlaying(true); flowchartSteps[0].action!(); }} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg transition-all">
-                       ▶️ Jalankan
-                    </button>
-                 )}
-                 {(isPlaying || pathIdx > 0) && (
-                    <button onClick={handleReset} className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 rounded-xl shadow-lg transition-all">
-                       ⏹️ Reset
-                    </button>
-                 )}
-              </div>
-
-              {/* Inputs */}
-              <div className="bg-zinc-900 border border-white/10 p-6 rounded-2xl shadow-xl">
-                 <h3 className="font-bold text-white mb-4 border-b border-white/10 pb-2">Input User</h3>
-                 <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-300">Mau pakai Gula?</span>
-                    <button 
-                      onClick={toggleSweet} 
-                      disabled={isPlaying || pathIdx > 0}
-                      className={`px-4 py-1 rounded-full text-xs font-bold transition-all disabled:opacity-50 ${likeSweet ? 'bg-emerald-600 text-white' : 'bg-zinc-700 text-zinc-400'}`}
-                    >
-                       {likeSweet ? 'YA' : 'TIDAK'}
-                    </button>
-                 </div>
-              </div>
-
-           </div>
-
-        </div>
-
-      </div>
-
-      <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 glass-card flex flex-col h-full z-10">
-        <div className="p-4 border-b border-white/10"><h3 className="font-semibold text-white">Logika Pemrograman</h3></div>
-        <div className="p-6 flex-1 overflow-y-auto space-y-4">
-          
-          <div className="p-4 bg-black/30 rounded-xl border border-white/5 space-y-3 text-xs text-zinc-300 leading-relaxed">
-            <p><strong>Algoritma</strong> adalah urutan langkah logis untuk menyelesaikan suatu masalah.</p>
-            <p>Sedangkan <strong>Flowchart</strong> adalah representasi visual dari algoritma tersebut menggunakan simbol-simbol standar.</p>
+      {/* ── Left Sidebar ── */}
+      <div className="w-full lg:w-[400px] flex flex-col border-r border-white/5 bg-zinc-950/50 backdrop-blur-xl z-20 overflow-y-auto no-scrollbar">
+        <div className="p-8 border-b border-white/5">
+          <div className="flex items-center gap-4 mb-8">
+            <Link href="/simulasi" className="p-2 hover:bg-white/5 rounded-xl border border-white/10 transition-all">
+              <ChevronLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-black text-white tracking-tight leading-tight">Algoritma & Flowchart</h1>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Laboratorium Logika Digital</p>
+            </div>
           </div>
 
-          <div className="space-y-2 mt-4">
-             <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Simbol Flowchart:</div>
-             <div className="flex items-center gap-3 text-xs">
-                <div className="w-10 h-6 bg-zinc-700 rounded-full flex-shrink-0" />
-                <span className="text-zinc-300"><strong>Terminal:</strong> Mulai / Selesai</span>
-             </div>
-             <div className="flex items-center gap-3 text-xs">
-                <div className="w-10 h-6 bg-zinc-700 rounded flex-shrink-0" />
-                <span className="text-zinc-300"><strong>Proses:</strong> Eksekusi / Hitung</span>
-             </div>
-             <div className="flex items-center gap-3 text-xs">
-                <div className="w-10 h-6 bg-zinc-700 transform -skew-x-12 flex-shrink-0" />
-                <span className="text-zinc-300"><strong>I/O:</strong> Input atau Output</span>
-             </div>
-             <div className="flex items-center gap-3 text-xs">
-                <div className="w-6 h-6 bg-zinc-700 rotate-45 mx-2 flex-shrink-0" />
-                <span className="text-zinc-300"><strong>Decision:</strong> Percabangan (IF/ELSE)</span>
-             </div>
+          {/* Memory HUD */}
+          <div className="p-6 bg-white/5 rounded-3xl border border-white/5 space-y-4 mb-6">
+            <div className="flex items-center gap-3 text-indigo-400">
+              <Variable className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Memori Sistem</span>
+            </div>
+            {[
+              { label: "Air Temp", value: `${variables.air}°C` },
+              { label: "Kopi",     value: `${variables.kopi} Sdk` },
+              { label: "Gula",     value: `${variables.gula} Sdk` },
+            ].map((row) => (
+              <div key={row.label} className="flex justify-between items-center bg-black/40 p-2 rounded-lg border border-white/5">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase">{row.label}</span>
+                <span className="text-xs font-black text-white">{row.value}</span>
+              </div>
+            ))}
+            <div className="pt-2">
+              <span className="block text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Status Eksekusi:</span>
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3 text-emerald-400">
+                <Activity className="w-4 h-4" />
+                <span className="text-xs font-black uppercase tracking-tight">{variables.status}</span>
+              </div>
+            </div>
           </div>
 
+          {/* Controls */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsPlaying(true)}
+              disabled={isPlaying || pathStep > 0}
+              className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-3 active:scale-95 shadow-xl shadow-indigo-500/20"
+            >
+              <Play className="w-4 h-4" /> Jalankan
+            </button>
+            <button
+              onClick={reset}
+              className="w-14 h-14 bg-white/5 hover:bg-white/10 rounded-2xl flex items-center justify-center transition-all active:scale-95 border border-white/10"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 p-8 space-y-8">
+          {/* Sweet Toggle */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 text-sky-400 mb-2">
+              <Cpu className="w-5 h-5" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Input Parameter</span>
+            </div>
+            <div className="p-6 bg-white/5 rounded-[32px] border border-white/5 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Gunakan Gula (IF)</span>
+                <button
+                  onClick={() => { if (!isPlaying && pathStep === 0) setLikeSweet(!likeSweet); }}
+                  className={`w-12 h-6 rounded-full transition-all relative ${likeSweet ? "bg-indigo-500" : "bg-zinc-700"}`}
+                >
+                  <motion.div
+                    animate={{ x: likeSweet ? 24 : 4 }}
+                    className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-lg"
+                  />
+                </button>
+              </div>
+              <p className="text-[10px] text-zinc-500 leading-relaxed italic">
+                Input ini mengubah jalur (branch) algoritma saat mencapai node keputusan.
+              </p>
+            </div>
+          </div>
+
+          {/* Symbol glossary */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 text-zinc-500 mb-2">
+              <Code2 className="w-5 h-5" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Glosarium Simbol</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { shape: "rounded-full w-4 h-4 bg-zinc-700", label: "Terminal" },
+                { shape: "w-4 h-3 bg-zinc-700", label: "Proses" },
+                { shape: "w-4 h-4 bg-zinc-700 rotate-45", label: "Decision" },
+                { shape: "w-4 h-3 bg-zinc-700 -skew-x-12", label: "I/O" },
+              ].map((s) => (
+                <div key={s.label} className="p-3 bg-white/5 border border-white/5 rounded-xl flex items-center gap-3">
+                  <div className={s.shape} />
+                  <span className="text-[9px] font-bold">{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-8 border-t border-white/5 bg-black/20">
+          <div className="flex items-center gap-3 text-zinc-500 mb-4">
+            <Database className="w-4 h-4 text-emerald-500" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Algoritma Dunia Nyata</span>
+          </div>
+          <p className="text-[9px] text-zinc-600 leading-relaxed uppercase tracking-wider font-bold">
+            Dari mesin pencari hingga rekomendasi musik, semua digerakkan oleh algoritma dengan ribuan percabangan keputusan.
+          </p>
         </div>
       </div>
+
+      {/* ── Center: Simulation Area ── */}
+      <div className="flex-1 relative flex items-center justify-center p-8 bg-[#080808] overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.05),transparent_70%)]" />
+
+        {/* Canvas wrapper */}
+        <div className="relative w-full h-full max-w-3xl bg-zinc-900/20 rounded-[48px] border border-white/5 overflow-hidden shadow-2xl backdrop-blur-sm flex items-center justify-center">
+
+          {/* ── Pure-SVG Flowchart ── */}
+          {/* Everything lives in one viewBox so positions are always consistent */}
+          <svg
+            viewBox="0 0 500 760"
+            className="w-full h-full"
+            style={{ maxHeight: "100%" }}
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <marker id="arr" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+                <polygon points="0 0, 8 4, 0 8" fill="#52525b" />
+              </marker>
+              <marker id="arr-hi" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+                <polygon points="0 0, 8 4, 0 8" fill="#6366f1" />
+              </marker>
+              <filter id="glow-f" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="6" result="blur" />
+                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+            </defs>
+
+            {/* ── CONNECTORS ── */}
+            {/* 0 Mulai → 1 Rebus */}
+            <line x1="250" y1="68" x2="250" y2="118" stroke="#52525b" strokeWidth="2" markerEnd="url(#arr)" />
+            {/* 1 Rebus → 2 Kopi */}
+            <line x1="250" y1="170" x2="250" y2="222" stroke="#52525b" strokeWidth="2" markerEnd="url(#arr)" />
+            {/* 2 Kopi → 3 Decision */}
+            <line x1="250" y1="272" x2="250" y2="324" stroke="#52525b" strokeWidth="2" markerEnd="url(#arr)" />
+            {/* 3 Decision → 5 Seduh (TIDAK) */}
+            <line x1="250" y1="400" x2="250" y2="490" stroke="#52525b" strokeWidth="2" markerEnd="url(#arr)" />
+            {/* 5 Seduh → 6 Selesai */}
+            <line x1="250" y1="542" x2="250" y2="608" stroke="#52525b" strokeWidth="2" markerEnd="url(#arr)" />
+
+            {/* Decision → Gula branch (YA, right) */}
+            <path
+              d={`M 330 362 H 420 V 468`}
+              fill="none"
+              stroke={likeSweet ? "#6366f1" : "#52525b"}
+              strokeWidth="2"
+              markerEnd={likeSweet ? "url(#arr-hi)" : "url(#arr)"}
+            />
+            {/* Gula → rejoin before Seduh */}
+            <path
+              d={`M 420 520 V 516 H 250`}
+              fill="none"
+              stroke={likeSweet ? "#6366f1" : "#52525b"}
+              strokeWidth="2"
+            />
+
+            {/* Branch labels */}
+            <text x="346" y="354" fill={likeSweet ? "#818cf8" : "#52525b"} fontSize="14" fontFamily="monospace" fontWeight="bold">YA</text>
+            <text x="256" y="430" fill="#52525b" fontSize="14" fontFamily="monospace" fontWeight="bold">TIDAK</text>
+
+            {/* ── NODES ── */}
+
+            {/* 0: Mulai — Terminal (pill) */}
+            <g filter={activeIdx === 0 ? "url(#glow-f)" : ""}>
+              <rect x="160" y="30" width="180" height="44" rx="22"
+                fill={nodeFill(0)} stroke={nodeStroke(0)} strokeWidth="2" />
+              <text x="250" y="57" textAnchor="middle" dominantBaseline="middle"
+                fill={textFill(0)} fontSize="14" fontFamily="sans-serif" fontWeight="800" letterSpacing="2">MULAI</text>
+              {showCheck(0) && <><circle cx="342" cy="38" r="11" fill="#10b981" /><text x="342" y="43" textAnchor="middle" fill="#fff" fontSize="13">✓</text></>}
+            </g>
+
+            {/* 1: Rebus Air — Process (rect) */}
+            <g filter={activeIdx === 1 ? "url(#glow-f)" : ""}>
+              <rect x="140" y="118" width="220" height="52" rx="8"
+                fill={nodeFill(1)} stroke={nodeStroke(1)} strokeWidth="2" />
+              <text x="250" y="144" textAnchor="middle" dominantBaseline="middle"
+                fill={textFill(1)} fontSize="13" fontFamily="sans-serif" fontWeight="800">REBUS AIR</text>
+              <text x="250" y="162" textAnchor="middle" dominantBaseline="middle"
+                fill={textFill(1)} fontSize="11" fontFamily="sans-serif" fontWeight="600">(100°C)</text>
+              {showCheck(1) && <><circle cx="362" cy="126" r="11" fill="#10b981" /><text x="362" y="131" textAnchor="middle" fill="#fff" fontSize="13">✓</text></>}
+            </g>
+
+            {/* 2: Input Kopi — I/O (parallelogram) */}
+            <g filter={activeIdx === 2 ? "url(#glow-f)" : ""}>
+              <polygon points="120,222 370,222 390,272 100,272"
+                fill={nodeFill(2)} stroke={nodeStroke(2)} strokeWidth="2" />
+              <text x="250" y="247" textAnchor="middle" dominantBaseline="middle"
+                fill={textFill(2)} fontSize="13" fontFamily="sans-serif" fontWeight="800">INPUT: 1 SDK KOPI</text>
+              {showCheck(2) && <><circle cx="392" cy="232" r="11" fill="#10b981" /><text x="392" y="237" textAnchor="middle" fill="#fff" fontSize="13">✓</text></>}
+            </g>
+
+            {/* 3: Decision — Diamond */}
+            <g filter={activeIdx === 3 ? "url(#glow-f)" : ""}>
+              <polygon points="250,324 340,362 250,400 160,362"
+                fill={nodeFill(3)} stroke={nodeStroke(3)} strokeWidth="2" />
+              <text x="250" y="362" textAnchor="middle" dominantBaseline="middle"
+                fill={textFill(3)} fontSize="13" fontFamily="sans-serif" fontWeight="800">SUKA MANIS?</text>
+              {showCheck(3) && <><circle cx="342" cy="332" r="11" fill="#10b981" /><text x="342" y="337" textAnchor="middle" fill="#fff" fontSize="13">✓</text></>}
+            </g>
+
+            {/* 4: Input Gula — I/O (parallelogram), right branch */}
+            <g filter={activeIdx === 4 ? "url(#glow-f)" : ""}>
+              <polygon points="320,468 470,468 490,520 300,520"
+                fill={nodeFill(4)} stroke={nodeStroke(4)} strokeWidth="2" />
+              <text x="400" y="494" textAnchor="middle" dominantBaseline="middle"
+                fill={textFill(4)} fontSize="12" fontFamily="sans-serif" fontWeight="800">INPUT: 2 SDK GULA</text>
+              {showCheck(4) && <><circle cx="492" cy="478" r="11" fill="#10b981" /><text x="492" y="483" textAnchor="middle" fill="#fff" fontSize="13">✓</text></>}
+            </g>
+
+            {/* 5: Seduh & Aduk — Process */}
+            <g filter={activeIdx === 5 ? "url(#glow-f)" : ""}>
+              <rect x="140" y="490" width="220" height="52" rx="8"
+                fill={nodeFill(5)} stroke={nodeStroke(5)} strokeWidth="2" />
+              <text x="250" y="516" textAnchor="middle" dominantBaseline="middle"
+                fill={textFill(5)} fontSize="13" fontFamily="sans-serif" fontWeight="800">SEDUH &amp; ADUK</text>
+              {showCheck(5) && <><circle cx="362" cy="498" r="11" fill="#10b981" /><text x="362" y="503" textAnchor="middle" fill="#fff" fontSize="13">✓</text></>}
+            </g>
+
+            {/* 6: Selesai — Terminal (pill), green when done */}
+            <g filter={activeIdx === 6 ? "url(#glow-f)" : ""}>
+              <rect x="155" y="608" width="190" height="48" rx="24"
+                fill={activeIdx === 6 ? "#10b981" : "#27272a"}
+                stroke={activeIdx === 6 ? "#34d399" : "#3f3f46"}
+                strokeWidth="2" />
+              <text x="250" y="632" textAnchor="middle" dominantBaseline="middle"
+                fill={activeIdx === 6 ? "#fff" : "#a1a1aa"} fontSize="14" fontFamily="sans-serif" fontWeight="800">☕ KOPI SIAP!</text>
+              {showCheck(6) && <><circle cx="347" cy="616" r="11" fill="#10b981" /><text x="347" y="621" textAnchor="middle" fill="#fff" fontSize="13">✓</text></>}
+            </g>
+          </svg>
+
+          {/* Dashboard overlay */}
+          <div className="absolute top-8 left-8 flex items-center gap-4 bg-black/40 backdrop-blur-xl border border-white/5 p-4 px-6 rounded-[24px] shadow-2xl">
+            <div className={`w-3 h-3 rounded-full ${isPlaying ? "bg-indigo-500 animate-pulse" : "bg-zinc-700"} shadow-[0_0_10px_currentColor]`} />
+            <div>
+              <span className="block text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mb-1">Execution Pipeline Active</span>
+              <h3 className="text-sm font-black text-white uppercase tracking-tight">{isPlaying ? "SEDANG BERJALAN" : "SISTEM STANDBY"}</h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Hint */}
+        <div className="absolute bottom-10 px-8 py-3 bg-white/5 backdrop-blur-xl border border-white/5 rounded-full flex items-center gap-3 text-zinc-500 shadow-2xl">
+          <MousePointer2 className="w-4 h-4 animate-bounce text-indigo-400" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Ubah Input (Gula) dan Tekan Jalankan untuk Simulasi Algoritma</span>
+        </div>
+      </div>
+
     </div>
   );
 }
