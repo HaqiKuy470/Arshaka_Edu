@@ -107,7 +107,6 @@ import MatriksTransformasi from "@/simulations/matematika/MatriksTransformasi";
 import AljabarLinear from "@/simulations/matematika/AljabarLinear";
 import Trigonometri from "@/simulations/matematika/Trigonometri";
 
-import OperasiBilangan from "@/simulations/matematika/OperasiBilangan";
 import PecahanDesimal from "@/simulations/matematika/PecahanDesimal";
 import GarisBilangan from "@/simulations/matematika/GarisBilangan";
 import FaktorKelipatan from "@/simulations/matematika/FaktorKelipatan";
@@ -352,7 +351,6 @@ export default function SimulationDetail({ params }: { params: Promise<{ slug: s
       case "polimer": return <Polimer />;
       
       // Matematika
-      case "operasi-bilangan": return <OperasiBilangan />;
       case "pecahan-desimal": return <PecahanDesimal />;
       case "garis-bilangan": return <GarisBilangan />;
       case "faktor-kelipatan": return <FaktorKelipatan />;

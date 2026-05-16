@@ -99,7 +99,6 @@ export default function SimulationsPage() {
     { id: "polimer", title: "Reaksi Polimerisasi", cat: "Kimia", color: "bg-emerald-600" },
     
     // Matematika
-    { id: "operasi-bilangan", title: "Operasi Bilangan", cat: "Matematika", color: "bg-blue-500" },
     { id: "pecahan-desimal", title: "Pecahan & Desimal", cat: "Matematika", color: "bg-sky-500" },
     { id: "garis-bilangan", title: "Garis Bilangan (Bulat)", cat: "Matematika", color: "bg-emerald-500" },
     { id: "faktor-kelipatan", title: "FPB & KPK", cat: "Matematika", color: "bg-rose-500" },

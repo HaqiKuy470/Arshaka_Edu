@@ -1,110 +1,300 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Zap, 
+  Activity, 
+  ChevronLeft,
+  Info,
+  Droplet,
+  FlaskConical,
+  Wind,
+  Flame,
+  MousePointer2,
+  Share2,
+  ShieldCheck,
+  Brain
+} from "lucide-react";
+import Link from "next/link";
+
+// --- Types ---
+type GlandType = "pituitari" | "tiroid" | "adrenal" | "pankreas";
+
+type GlandInfo = {
+  id: GlandType;
+  name: string;
+  nick: string;
+  desc: string;
+  hormones: string[];
+  icon: React.ReactNode;
+  color: string;
+  pos: { top: string; left: string };
+  interactiveLabel: string;
+  simulationRange: [number, number];
+  unit: string;
+};
+
+// --- Data ---
+const GLANDS: GlandInfo[] = [
+  {
+    id: "pituitari",
+    name: "Kelenjar Pituitari",
+    nick: "Master Gland",
+    desc: "Kelenjar induk yang mengontrol fungsi kelenjar endokrin lainnya melalui sinyal hormonal.",
+    hormones: ["GH (Pertumbuhan)", "TSH", "Oksitosin"],
+    icon: <Brain className="w-5 h-5" />,
+    color: "bg-purple-500",
+    pos: { top: "12%", left: "50%" },
+    interactiveLabel: "Laju Pertumbuhan",
+    simulationRange: [0, 100],
+    unit: "%"
+  },
+  {
+    id: "tiroid",
+    name: "Kelenjar Tiroid",
+    nick: "Pusat Metabolisme",
+    desc: "Mengatur seberapa cepat tubuh membakar energi dan tingkat sensitivitas terhadap hormon lain.",
+    hormones: ["Tiroksin (T4)", "Triiodotironin (T3)"],
+    icon: <Flame className="w-5 h-5" />,
+    color: "bg-emerald-500",
+    pos: { top: "22%", left: "50%" },
+    interactiveLabel: "Tingkat Metabolisme",
+    simulationRange: [0, 100],
+    unit: "kcal/h"
+  },
+  {
+    id: "adrenal",
+    name: "Kelenjar Adrenal",
+    nick: "Pusat Respon Stress",
+    desc: "Memicu respon 'Fight or Flight' dalam situasi darurat dengan meningkatkan detak jantung.",
+    hormones: ["Adrenalin", "Kortisol"],
+    icon: <Zap className="w-5 h-5" />,
+    color: "bg-amber-500",
+    pos: { top: "45%", left: "50%" },
+    interactiveLabel: "Detak Jantung (BPM)",
+    simulationRange: [60, 180],
+    unit: "bpm"
+  },
+  {
+    id: "pankreas",
+    name: "Pankreas",
+    nick: "Regulator Glukosa",
+    desc: "Menjaga keseimbangan kadar gula darah agar sel-sel tubuh mendapatkan energi yang cukup.",
+    hormones: ["Insulin", "Glukagon"],
+    icon: <Droplet className="w-5 h-5" />,
+    color: "bg-rose-500",
+    pos: { top: "52%", left: "50%" },
+    interactiveLabel: "Gula Darah (mg/dL)",
+    simulationRange: [40, 240],
+    unit: "mg/dL"
+  }
+];
 
 export default function SistemHormon() {
-  const [gland, setGland] = useState<"pituitari"|"tiroid"|"adrenal"|"pankreas">("pankreas");
-  const [sugarLevel, setSugarLevel] = useState(90);
+  const [selectedId, setSelectedId] = useState<GlandType>("pankreas");
+  const [simValue, setSimValue] = useState(100);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  const currentGland = useMemo(() => 
+    GLANDS.find(g => g.id === selectedId) || GLANDS[3]
+  , [selectedId]);
 
   return (
-    <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
-      <div className="flex-1 relative flex flex-col items-center justify-center bg-zinc-950 min-h-[50vh] lg:min-h-0 p-8">
+    <div className="flex flex-col lg:flex-row h-screen bg-[#050505] text-zinc-300 overflow-hidden font-sans">
+      
+      {/* --- Left Sidebar: Gland Diagnostics --- */}
+      <div className="w-full lg:w-[400px] flex flex-col border-r border-white/5 bg-zinc-950/50 backdrop-blur-xl z-20 overflow-y-auto no-scrollbar">
         
-        {/* Human Body Outline with Glands */}
-        <div className="relative w-[300px] h-[600px] bg-zinc-900/50 rounded-full border border-white/10 flex flex-col items-center pt-8">
-           <div className="absolute inset-0 opacity-20 bg-[url('https://upload.wikimedia.org/wikipedia/commons/4/4b/Human_body_silhouette.svg')] bg-contain bg-center bg-no-repeat" />
-
-           {/* Pituitary Gland (Brain) */}
-           <div 
-             onClick={()=>setGland("pituitari")}
-             className={`absolute top-16 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all ${gland === 'pituitari' ? 'bg-purple-500 scale-125 shadow-[0_0_20px_rgba(168,85,247,0.8)] z-10' : 'bg-purple-900 border-2 border-purple-500 opacity-60'}`}
-           >🧠</div>
-
-           {/* Thyroid Gland (Neck) */}
-           <div 
-             onClick={()=>setGland("tiroid")}
-             className={`absolute top-32 w-10 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all ${gland === 'tiroid' ? 'bg-emerald-500 scale-125 shadow-[0_0_20px_rgba(16,185,129,0.8)] z-10' : 'bg-emerald-900 border-2 border-emerald-500 opacity-60'}`}
-           >🦋</div>
-
-           {/* Adrenal Glands (Kidneys) */}
-           <div 
-             onClick={()=>setGland("adrenal")}
-             className={`absolute top-72 w-16 h-8 flex justify-between cursor-pointer transition-all ${gland === 'adrenal' ? 'scale-125 z-10' : 'opacity-60'}`}
-           >
-              <div className={`w-6 h-6 rounded-t-full ${gland==='adrenal' ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.8)]' : 'bg-amber-900 border-2 border-amber-500'}`} />
-              <div className={`w-6 h-6 rounded-t-full ${gland==='adrenal' ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.8)]' : 'bg-amber-900 border-2 border-amber-500'}`} />
-           </div>
-
-           {/* Pancreas (Stomach area) */}
-           <div 
-             onClick={()=>setGland("pankreas")}
-             className={`absolute top-80 w-20 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all ${gland === 'pankreas' ? 'bg-rose-500 scale-125 shadow-[0_0_20px_rgba(244,63,94,0.8)] z-10' : 'bg-rose-900 border-2 border-rose-500 opacity-60'}`}
-           >🍃</div>
-        </div>
-
-        {/* Interactive Element (Only for Pancreas demo) */}
-        {gland === "pankreas" && (
-           <div className="absolute right-10 bottom-10 glass-card p-6 rounded-2xl w-64 border-t-4 border-rose-500">
-             <div className="text-sm font-bold text-white mb-4">Simulasi Gula Darah</div>
-             <div className="text-2xl font-mono text-white mb-2">{sugarLevel} mg/dL</div>
-             <input type="range" className="w-full accent-rose-500" min="40" max="200" value={sugarLevel} onChange={(e)=>setSugarLevel(parseInt(e.target.value))} />
-             <div className="mt-4 text-xs font-bold p-2 rounded bg-black/50 text-center">
-                {sugarLevel > 120 ? (
-                  <span className="text-blue-400">Pankreas merilis INSULIN (Menyimpan gula)</span>
-                ) : sugarLevel < 70 ? (
-                  <span className="text-amber-400">Pankreas merilis GLUKAGON (Melepas gula)</span>
-                ) : (
-                  <span className="text-emerald-400">Normal (Homeostasis)</span>
-                )}
-             </div>
-           </div>
-        )}
-
-      </div>
-
-      <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 glass-card flex flex-col h-full z-10">
-        <div className="p-4 border-b border-white/10"><h3 className="font-semibold text-white">Sistem Endokrin (Hormon)</h3></div>
-        <div className="p-6 flex-1 overflow-y-auto space-y-6">
-          
-          {gland === "pituitari" && (
-             <div className="bg-purple-950/50 border border-purple-500/30 p-4 rounded-xl">
-               <h4 className="text-lg font-bold text-purple-400 mb-2">Kelenjar Pituitari (Hipofisis)</h4>
-               <p className="text-sm text-zinc-300">Dikenal sebagai "Master Gland" (Kelenjar Induk) karena hormon yang dihasilkannya mengontrol kelenjar endokrin lain.</p>
-               <div className="mt-4 text-xs bg-black/40 p-2 rounded"><strong>Hormon Utama:</strong> Growth Hormone (GH), TSH, Oksitosin.</div>
-             </div>
-          )}
-
-          {gland === "tiroid" && (
-             <div className="bg-emerald-950/50 border border-emerald-500/30 p-4 rounded-xl">
-               <h4 className="text-lg font-bold text-emerald-400 mb-2">Kelenjar Tiroid</h4>
-               <p className="text-sm text-zinc-300">Terletak di leher berbentuk seperti kupu-kupu. Mengontrol seberapa cepat tubuh membakar energi (Metabolisme).</p>
-               <div className="mt-4 text-xs bg-black/40 p-2 rounded"><strong>Hormon Utama:</strong> Tiroksin (T4), Triiodotironin (T3). Membutuhkan Yodium.</div>
-             </div>
-          )}
-
-          {gland === "adrenal" && (
-             <div className="bg-amber-950/50 border border-amber-500/30 p-4 rounded-xl">
-               <h4 className="text-lg font-bold text-amber-400 mb-2">Kelenjar Adrenal</h4>
-               <p className="text-sm text-zinc-300">Terletak di atas ginjal. Sangat aktif saat kita merasa stres, takut, atau bersemangat (Respon Fight or Flight).</p>
-               <div className="mt-4 text-xs bg-black/40 p-2 rounded"><strong>Hormon Utama:</strong> Adrenalin (Epinefrin), Kortisol.</div>
-             </div>
-          )}
-
-          {gland === "pankreas" && (
-             <div className="bg-rose-950/50 border border-rose-500/30 p-4 rounded-xl">
-               <h4 className="text-lg font-bold text-rose-400 mb-2">Pankreas</h4>
-               <p className="text-sm text-zinc-300">Berfungsi ganda sebagai organ pencernaan dan endokrin. Sangat krusial untuk mengatur kadar gula dalam darah.</p>
-               <div className="mt-4 text-xs bg-black/40 p-2 rounded"><strong>Hormon Utama:</strong> Insulin (Menurunkan gula), Glukagon (Menaikkan gula).</div>
-             </div>
-          )}
-
-          <div className="p-4 bg-black/30 rounded-xl border border-white/5 space-y-2 text-xs text-zinc-300 leading-relaxed mt-4">
-            <p><strong>Hormon</strong> adalah pembawa pesan kimiawi tubuh. Mereka bergerak melalui aliran darah menuju jaringan atau organ tertentu.</p>
-            <p>Berbeda dengan sistem saraf yang bekerja dalam hitungan milidetik, hormon bekerja secara lambat namun efeknya bertahan sangat lama.</p>
+        {/* Header */}
+        <div className="p-8 border-b border-white/5">
+          <div className="flex items-center gap-4 mb-8">
+            <Link href="/simulasi" className="p-2 hover:bg-white/5 rounded-xl border border-white/10 transition-all">
+              <ChevronLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-black text-white tracking-tight">Sistem Hormon</h1>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Laboratorium Endokrinologi</p>
+            </div>
           </div>
 
+          <div className="p-6 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-3xl border border-indigo-500/20 space-y-4">
+             <div className="flex items-center gap-3 text-indigo-400">
+                <FlaskConical className="w-5 h-5" />
+                <span className="text-[10px] font-black uppercase tracking-widest leading-none">Status Homeostasis</span>
+             </div>
+             <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white uppercase tracking-wider">{currentGland.interactiveLabel}</span>
+                <span className={`text-lg font-black font-mono ${simValue > 140 ? 'text-rose-500' : simValue < 70 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                   {simValue} {currentGland.unit}
+                </span>
+             </div>
+             <input 
+               type="range"
+               min={currentGland.simulationRange[0]}
+               max={currentGland.simulationRange[1]}
+               value={simValue}
+               onChange={(e) => setSimValue(parseInt(e.target.value))}
+               className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer bg-white/5 accent-${currentGland.color.split('-')[1]}-500`}
+             />
+          </div>
+        </div>
+
+        {/* Detailed Info Panel */}
+        <div className="flex-1 p-8 space-y-8">
+           <AnimatePresence mode="wait">
+             <motion.div 
+               key={currentGland.id}
+               initial={{ opacity: 0, x: -20 }}
+               animate={{ opacity: 1, x: 0 }}
+               exit={{ opacity: 0, x: -20 }}
+               className="space-y-6"
+             >
+               <div className="flex items-center gap-4">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl ${currentGland.color} border border-white/20 text-white`}>
+                    {currentGland.icon}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-white tracking-tight">{currentGland.name}</h2>
+                    <div className="flex items-center gap-2 mt-1">
+                      <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                      <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{currentGland.nick}</span>
+                    </div>
+                  </div>
+               </div>
+
+               <div className="p-6 bg-white/5 rounded-[32px] border border-white/5">
+                  <p className="text-sm text-zinc-400 leading-relaxed font-medium">
+                    {currentGland.desc}
+                  </p>
+               </div>
+
+               <div className="space-y-4">
+                  <h3 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest px-2">Daftar Hormon:</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                     {currentGland.hormones.map((h, i) => (
+                       <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center gap-3">
+                          <Droplet className="w-3 h-3 text-zinc-500" />
+                          <span className="text-[10px] font-bold text-zinc-300">{h}</span>
+                       </div>
+                     ))}
+                  </div>
+               </div>
+
+               {/* Homeostasis FeedBack */}
+               <div className={`p-4 rounded-2xl border flex items-center gap-4 transition-all duration-500 ${simValue > 140 ? 'bg-rose-500/10 border-rose-500/30' : simValue < 70 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-emerald-500/10 border-emerald-500/30'}`}>
+                  <Activity className={`w-5 h-5 ${simValue > 140 || simValue < 70 ? 'animate-pulse' : ''}`} />
+                  <div className="text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                     {simValue > 140 ? "Kadar Berlebih: Menyeimbangkan..." : simValue < 70 ? "Kadar Kurang: Melepaskan Hormon..." : "Kondisi Seimbang (Homeostasis)"}
+                  </div>
+               </div>
+             </motion.div>
+           </AnimatePresence>
+        </div>
+
+        {/* Legend */}
+        <div className="p-8 border-t border-white/5 bg-black/20 mt-auto">
+           <div className="flex items-center gap-3 text-zinc-500 mb-4">
+              <Share2 className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Aliran Pesan Kimiawi</span>
+           </div>
+           <p className="text-[9px] text-zinc-600 leading-relaxed uppercase tracking-wider font-bold">
+             Hormon mengalir melalui darah untuk mencari organ target spesifik.
+           </p>
         </div>
       </div>
+
+      {/* --- Center: Simulation Area --- */}
+      <div className="flex-1 relative flex items-center justify-center p-12 bg-[#080808] overflow-hidden">
+        
+        {/* Environment Aura */}
+        <div className="absolute inset-0 pointer-events-none">
+           <AnimatePresence>
+              <motion.div 
+                key={currentGland.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className={`absolute inset-0 bg-gradient-to-b ${currentGland.color.replace('bg-', 'from-')}/5 to-transparent`}
+              />
+           </AnimatePresence>
+        </div>
+
+        {/* Human Silhouette Visualization */}
+        <div className="relative w-[360px] h-[700px] flex items-center justify-center">
+           
+           {/* Base Silhouette (Refined) */}
+           <div className="absolute inset-0 border-2 border-white/10 rounded-[140px] bg-zinc-900/10 backdrop-blur-sm" />
+           <div className="absolute -top-12 w-32 h-32 border-2 border-white/10 rounded-full bg-zinc-900/10 backdrop-blur-sm" />
+
+           {/* Interactive Gland Markers */}
+           <div className="relative w-full h-full">
+              {GLANDS.map((g) => (
+                <motion.button
+                  key={g.id}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onMouseEnter={() => setHoveredId(g.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  onClick={() => { setSelectedId(g.id); setSimValue(g.id === 'adrenal' ? 70 : 100); }}
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all duration-500 group z-20
+                    ${selectedId === g.id ? `${g.color} w-10 h-10 shadow-[0_0_30px_rgba(255,255,255,0.4)] ring-4 ring-white/20` : `bg-white/5 border border-white/20 w-8 h-8 hover:bg-white/10 hover:border-white/40`}
+                  `}
+                  style={{ top: g.pos.top, left: g.pos.left }}
+                >
+                   {/* Icon or Pulse */}
+                   {selectedId === g.id ? (
+                     <div className="text-white scale-75">{g.icon}</div>
+                   ) : (
+                     <div className={`w-2 h-2 rounded-full ${g.color} animate-pulse`} />
+                   )}
+
+                   {/* Tooltip on Hover */}
+                   <AnimatePresence>
+                     {hoveredId === g.id && (
+                       <motion.div 
+                         initial={{ opacity: 0, y: 10 }}
+                         animate={{ opacity: 1, y: 0 }}
+                         className="absolute -top-12 bg-white text-black text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg whitespace-nowrap shadow-2xl z-30"
+                       >
+                         {g.name}
+                       </motion.div>
+                     )}
+                   </AnimatePresence>
+                </motion.button>
+              ))}
+
+              {/* Hormone Flow Visualization (Active only when sim changes) */}
+              <AnimatePresence>
+                 {(simValue > 140 || simValue < 70) && (
+                   <div className="absolute inset-0 pointer-events-none">
+                      {Array.from({ length: 15 }).map((_, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ top: currentGland.pos.top, left: currentGland.pos.left, opacity: 0, scale: 0 }}
+                          animate={{ 
+                            top: `${Math.random() * 80 + 10}%`, 
+                            left: `${Math.random() * 60 + 20}%`, 
+                            opacity: [0, 1, 0],
+                            scale: [0, 1, 0.5]
+                          }}
+                          transition={{ duration: 2, delay: i * 0.1, repeat: Infinity }}
+                          className={`absolute w-1.5 h-1.5 rounded-full ${currentGland.color} blur-[1px]`}
+                        />
+                      ))}
+                   </div>
+                 )}
+              </AnimatePresence>
+           </div>
+        </div>
+
+        {/* Global Feedback Hint */}
+        <div className="absolute bottom-12 px-8 py-3 bg-white/5 backdrop-blur-xl border border-white/5 rounded-full flex items-center gap-3 text-zinc-500">
+           <MousePointer2 className="w-4 h-4 animate-bounce text-indigo-400" />
+           <span className="text-[10px] font-black uppercase tracking-widest">Interaksi Marker Kelenjar untuk Analisis Detail</span>
+        </div>
+      </div>
+
     </div>
   );
 }
