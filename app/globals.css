@@ -75,4 +75,20 @@
     -webkit-text-fill-color: transparent;
     background-image: linear-gradient(to right, #6366f1, #8b5cf6, #ec4899);
   }
+
+  /* Global Simulation Responsive Fixes */
+  .lab-container {
+    @apply flex-1 flex flex-col lg:flex-row min-h-0 relative;
+  }
+  
+  .lab-sidebar {
+    @apply w-full lg:w-80 z-30 flex flex-col bg-zinc-950/80 backdrop-blur-3xl border-l border-white/5;
+  }
+
+  /* Target and hide redundant headers in legacy simulation components */
+  [data-sim-wrapper] header, 
+  [data-sim-wrapper] .simulation-header,
+  [data-sim-wrapper] .absolute.top-0.left-0.right-0.h-16 {
+    display: none !important;
+  }
 }

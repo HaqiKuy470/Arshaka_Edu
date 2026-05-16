@@ -512,13 +512,21 @@ export default function SimulationDetail({ params }: { params: Promise<{ slug: s
       
       default:
         return (
-          <div className="flex-1 relative flex items-center justify-center bg-zinc-950">
-            <div className="text-center z-10 p-8 glass-card rounded-2xl max-w-md mx-auto">
-              <div className="w-16 h-16 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-indigo-500/50">
-                <RefreshCw className="w-8 h-8 animate-spin-slow" />
+          <div className="flex-1 flex items-center justify-center bg-zinc-950 px-4 py-16">
+            <div className="text-center z-10 p-6 sm:p-10 bg-white/5 border border-white/10 backdrop-blur-xl rounded-[32px] w-full max-w-sm sm:max-w-md mx-auto space-y-4">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto border border-indigo-500/30">
+                <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 animate-spin-slow" />
               </div>
-              <h2 className="text-xl font-bold mb-2 text-white">Segera Hadir</h2>
-              <p className="text-zinc-400 text-sm">Simulasi untuk "{title}" sedang dalam tahap pengembangan tim Arshaka Edu.</p>
+              <div>
+                <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight mb-2">Segera Hadir</h2>
+                <p className="text-zinc-400 text-sm leading-relaxed">Simulasi <span className="text-indigo-400 font-bold">"{title}"</span> sedang dalam tahap pengembangan tim Arshaka Edu.</p>
+              </div>
+              <Link
+                href="/simulasi"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+              >
+                <ArrowLeft className="w-3 h-3" /> Kembali ke Katalog
+              </Link>
             </div>
           </div>
         );
@@ -526,31 +534,39 @@ export default function SimulationDetail({ params }: { params: Promise<{ slug: s
   };
 
   return (
-    <div className="flex flex-col flex-1 bg-black">
-      {/* Topbar for simulation */}
-      <div className="h-14 border-b border-white/10 glass flex items-center justify-between px-4 sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <Link href="/simulasi" className="text-zinc-400 hover:text-white p-2 -ml-2 rounded-lg hover:bg-white/5 transition-colors">
-            <ArrowLeft className="w-5 h-5" />
+    <div className="flex flex-col flex-1 bg-black min-h-screen">
+      {/* Topbar for simulation — responsive */}
+      <div className="h-12 md:h-14 border-b border-white/10 bg-zinc-950/80 backdrop-blur-xl flex items-center justify-between px-2 sm:px-4 sticky top-0 z-10">
+        <div className="flex items-center gap-1 sm:gap-3 min-w-0 flex-1">
+          <Link
+            href="/simulasi"
+            className="shrink-0 text-zinc-400 hover:text-white p-1.5 sm:p-2 rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1 sm:gap-2"
+            aria-label="Kembali ke katalog"
+          >
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline text-[10px] font-black uppercase tracking-widest text-zinc-500">Kembali</span>
           </Link>
-          <h1 className="font-semibold text-lg">{title}</h1>
+          <div className="w-px h-4 bg-white/10 hidden sm:block shrink-0" />
+          <h1 className="font-black text-sm md:text-base text-white truncate tracking-tight">{title}</h1>
         </div>
         
-        <div className="flex items-center gap-2">
-          <button className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors" title="Informasi">
-            <Info className="w-5 h-5" />
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+          <button className="p-1.5 sm:p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors" title="Informasi">
+            <Info className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
-          <button className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors" title="Pengaturan">
+          <button className="hidden sm:flex p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors" title="Pengaturan">
             <Settings className="w-5 h-5" />
           </button>
-          <button className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors" title="Layar Penuh">
-            <Maximize2 className="w-5 h-5" />
+          <button className="p-1.5 sm:p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors" title="Layar Penuh">
+            <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
       </div>
 
-      {/* Tampilkan Komponen Simulasi Secara Dinamis */}
-      {renderSimulation()}
+      {/* Simulation Canvas */}
+      <div className="flex-1 flex flex-col overflow-auto" data-sim-wrapper>
+        {renderSimulation()}
+      </div>
     </div>
   );
 }
