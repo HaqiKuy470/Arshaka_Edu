@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 
 export default function GugusFungsi() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+
   const [moleculeId, setMoleculeId] = useState(0);
 
   const molecules = [
@@ -19,9 +19,9 @@ export default function GugusFungsi() {
         { c: 'H', x: 0, y: -30 }, { c: 'H', x: 0, y: 30 }
       ],
       bonds: [
-        [0,1], [1,2], [2,3],
-        [0,4], [0,5], [0,6],
-        [1,7], [1,8]
+        [0, 1], [1, 2], [2, 3],
+        [0, 4], [0, 5], [0, 6],
+        [1, 7], [1, 8]
       ]
     },
     {
@@ -33,9 +33,9 @@ export default function GugusFungsi() {
         { c: 'H', x: 40, y: -30 }, { c: 'H', x: 40, y: 30 }, { c: 'H', x: 70, y: 0 }
       ],
       bonds: [
-        [0,1], [1,2],
-        [0,3], [0,4], [0,5],
-        [2,6], [2,7], [2,8]
+        [0, 1], [1, 2],
+        [0, 3], [0, 4], [0, 5],
+        [2, 6], [2, 7], [2, 8]
       ]
     },
     {
@@ -46,8 +46,8 @@ export default function GugusFungsi() {
         { c: 'H', x: -30, y: -30 }, { c: 'H', x: -30, y: 30 }, { c: 'H', x: -60, y: 0 }
       ],
       bonds: [
-        [0,1], [1,2, true], [1,3],
-        [0,4], [0,5], [0,6]
+        [0, 1], [1, 2, true], [1, 3],
+        [0, 4], [0, 5], [0, 6]
       ]
     },
     {
@@ -59,9 +59,9 @@ export default function GugusFungsi() {
         { c: 'H', x: 40, y: -30 }, { c: 'H', x: 40, y: 30 }, { c: 'H', x: 70, y: 0 }
       ],
       bonds: [
-        [0,1], [1,2, true], [1,3],
-        [0,4], [0,5], [0,6],
-        [3,7], [3,8], [3,9]
+        [0, 1], [1, 2, true], [1, 3],
+        [0, 4], [0, 5], [0, 6],
+        [3, 7], [3, 8], [3, 9]
       ]
     },
     {
@@ -72,8 +72,8 @@ export default function GugusFungsi() {
         { c: 'H', x: -30, y: -30 }, { c: 'H', x: -30, y: 30 }, { c: 'H', x: -60, y: 0 }
       ],
       bonds: [
-        [0,1], [1,2, true], [1,3], [3,4],
-        [0,5], [0,6], [0,7]
+        [0, 1], [1, 2, true], [1, 3], [3, 4],
+        [0, 5], [0, 6], [0, 7]
       ]
     }
   ];
@@ -101,7 +101,7 @@ export default function GugusFungsi() {
       ctx.translate(cx, cy);
       // Gentle floating animation
       ctx.translate(0, Math.sin(angle) * 10);
-      
+
       const scale = 2; // zoom in
 
       // Draw Bonds
@@ -113,11 +113,11 @@ export default function GugusFungsi() {
         ctx.strokeStyle = "rgba(255,255,255,0.4)";
         if (isDouble) {
           ctx.lineWidth = 3;
-          ctx.beginPath(); ctx.moveTo(p1.x*scale - 4, p1.y*scale - 4); ctx.lineTo(p2.x*scale - 4, p2.y*scale - 4); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(p1.x*scale + 4, p1.y*scale + 4); ctx.lineTo(p2.x*scale + 4, p2.y*scale + 4); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(p1.x * scale - 4, p1.y * scale - 4); ctx.lineTo(p2.x * scale - 4, p2.y * scale - 4); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(p1.x * scale + 4, p1.y * scale + 4); ctx.lineTo(p2.x * scale + 4, p2.y * scale + 4); ctx.stroke();
         } else {
           ctx.lineWidth = 4;
-          ctx.beginPath(); ctx.moveTo(p1.x*scale, p1.y*scale); ctx.lineTo(p2.x*scale, p2.y*scale); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(p1.x * scale, p1.y * scale); ctx.lineTo(p2.x * scale, p2.y * scale); ctx.stroke();
         }
       });
 
@@ -128,20 +128,20 @@ export default function GugusFungsi() {
         if (a.c === 'O') { color = "#ef4444"; radius = 12; }
         else if (a.c === 'H') { color = "#e2e8f0"; radius = 6; }
 
-        ctx.beginPath(); ctx.arc(a.x*scale, a.y*scale, radius*scale*0.6, 0, Math.PI*2);
+        ctx.beginPath(); ctx.arc(a.x * scale, a.y * scale, radius * scale * 0.6, 0, Math.PI * 2);
         ctx.fillStyle = color; ctx.fill();
 
         // Highlight functional group
         if (a.isGroup) {
-          ctx.beginPath(); ctx.arc(a.x*scale, a.y*scale, radius*scale*0.8, 0, Math.PI*2);
+          ctx.beginPath(); ctx.arc(a.x * scale, a.y * scale, radius * scale * 0.8, 0, Math.PI * 2);
           ctx.strokeStyle = m.color; ctx.lineWidth = 2; ctx.stroke();
           // subtle glow
           ctx.shadowColor = m.color; ctx.shadowBlur = 15; ctx.fill(); ctx.shadowBlur = 0;
         }
 
         ctx.fillStyle = (a.c === 'H') ? "black" : "white";
-        ctx.font = "bold 12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
-        ctx.fillText(a.c, a.x*scale, a.y*scale);
+        ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(a.c, a.x * scale, a.y * scale);
       });
 
       ctx.restore();
@@ -163,10 +163,10 @@ export default function GugusFungsi() {
       <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 glass-card flex flex-col h-full z-10">
         <div className="p-4 border-b border-white/10"><h3 className="font-semibold text-white">Gugus Fungsi Karbon</h3></div>
         <div className="p-6 flex-1 overflow-y-auto space-y-6">
-          
+
           <div className="grid grid-cols-1 gap-2">
             {molecules.map(mol => (
-              <button 
+              <button
                 key={mol.id}
                 onClick={() => setMoleculeId(mol.id)}
                 className={`p-3 rounded-xl border text-left transition-all ${moleculeId === mol.id ? 'bg-black/40 border-white/30 shadow-inner' : 'bg-transparent border-white/5 hover:bg-white/5'}`}
@@ -181,7 +181,7 @@ export default function GugusFungsi() {
           <div className="space-y-4 pt-4 border-t border-white/10">
             <div className="p-4 rounded-xl border" style={{ backgroundColor: `${m.color}20`, borderColor: `${m.color}50` }}>
               <div className="text-[10px] font-bold uppercase mb-1" style={{ color: m.color }}>Detail Gugus Fungsi</div>
-              
+
               <div className="space-y-2 mt-3">
                 <div>
                   <div className="text-xs text-zinc-400">Nama Gugus</div>

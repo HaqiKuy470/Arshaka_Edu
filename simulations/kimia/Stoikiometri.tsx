@@ -8,7 +8,7 @@ export default function Stoikiometri() {
   const [molarMassA, setMolarMassA] = useState(2.0); // g/mol (H2)
   const [molarMassB, setMolarMassB] = useState(32.0); // g/mol (O2)
   const [molarMassC, setMolarMassC] = useState(18.0); // g/mol (H2O)
-  
+
   // Reaction: 2 H2 + 1 O2 -> 2 H2O
   // Coeffs
   const cA = 2;
@@ -17,7 +17,7 @@ export default function Stoikiometri() {
 
   // Calculations
   const molA = massA / molarMassA;
-  
+
   // Stoichiometry ratios
   const molB = molA * (cB / cA);
   const molC = molA * (cC / cA);
@@ -30,7 +30,7 @@ export default function Stoikiometri() {
   return (
     <div className="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
       <div className="flex-1 relative flex flex-col items-center justify-center bg-zinc-950 min-h-[50vh] lg:min-h-0 p-8">
-        
+
         {/* Equation Display */}
         <div className="text-3xl md:text-5xl font-mono font-bold text-white mb-12 flex items-center gap-4">
           <div className="text-rose-400">
@@ -48,7 +48,7 @@ export default function Stoikiometri() {
 
         {/* Visual blocks */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl">
-          
+
           {/* Reactant A */}
           <div className="glass-card rounded-2xl p-6 border-t-4 border-rose-500 relative">
             <h3 className="text-rose-400 font-bold text-xl mb-4 text-center">Zat A (Reaktan)</h3>
@@ -107,11 +107,11 @@ export default function Stoikiometri() {
           </div>
 
         </div>
-        
+
         {/* Law of Conservation of Mass Check */}
         <div className="mt-12 p-4 rounded-xl border border-zinc-700 bg-zinc-900 text-center text-sm text-zinc-400">
-          <span className="font-bold text-white">Hukum Kekekalan Massa (Lavoisier):</span><br/>
-          Massa Reaktan (A + B) = {(massA + massB).toFixed(2)} g <br/>
+          <span className="font-bold text-white">Hukum Kekekalan Massa (Lavoisier):</span><br />
+          Massa Reaktan (A + B) = {(massA + massB).toFixed(2)} g <br />
           Massa Produk (C) = {massC.toFixed(2)} g
         </div>
 
@@ -120,23 +120,23 @@ export default function Stoikiometri() {
       <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 glass-card flex flex-col h-full z-10">
         <div className="p-4 border-b border-white/10"><h3 className="font-semibold text-white">Kalkulator Stoikiometri</h3></div>
         <div className="p-6 flex-1 overflow-y-auto space-y-6">
-          
+
           <div className="space-y-2">
             <div className="flex justify-between">
               <label className="text-sm font-bold text-rose-400">Massa Zat A (g)</label>
               <span className="font-mono text-rose-400">{massA} g</span>
             </div>
-            <input 
-              type="range" className="w-full accent-rose-500" 
-              min="1" max="100" step="1" 
-              value={massA} 
-              onChange={(e) => setMassA(parseFloat(e.target.value))} 
+            <input
+              type="range" className="w-full accent-rose-500"
+              min="1" max="100" step="1"
+              value={massA}
+              onChange={(e) => setMassA(parseFloat(e.target.value))}
             />
           </div>
 
           <div className="space-y-4 pt-4 border-t border-white/10">
             <div className="text-sm font-bold text-white">Atur Massa Molar (Mr)</div>
-            
+
             <div className="space-y-1">
               <label className="text-xs text-rose-300">Zat A (Misal: H₂ = 2)</label>
               <input type="number" className="w-full bg-zinc-900 border border-zinc-700 rounded p-2 text-white font-mono" value={molarMassA} onChange={(e) => setMolarMassA(parseFloat(e.target.value) || 1)} />
