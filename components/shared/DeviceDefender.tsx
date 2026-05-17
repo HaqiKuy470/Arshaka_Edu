@@ -96,7 +96,7 @@ export default function DeviceDefender() {
           </button>
 
           <p className="text-[8px] text-zinc-600 font-bold uppercase tracking-[0.2em]">
-            Arshaka Edu Security System • V2.0
+            Arshaka Edu Security System
           </p>
         </motion.div>
       </motion.div>
