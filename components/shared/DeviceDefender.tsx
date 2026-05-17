@@ -64,7 +64,7 @@ export default function DeviceDefender() {
               MODE DESKTOP <span className="text-indigo-400">DIBUTUHKAN</span>
             </h2>
             <p className="text-zinc-500 text-sm font-medium leading-relaxed">
-              Arshaka Edu dirancang untuk pengalaman laboratorium virtual yang mendalam. Layar ponsel Anda terlalu kecil untuk mengontrol instrumen simulasi secara akurat.
+              Arshaka Edu dirancang untuk pengalaman laboratorium virtual yang mendalam. Layar perangkat Anda terlalu kecil untuk mengontrol instrumen simulasi secara akurat.
             </p>
           </div>
 
@@ -74,7 +74,7 @@ export default function DeviceDefender() {
                    <Monitor className="w-5 h-5 text-indigo-400" />
                 </div>
                 <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                  Aktifkan "Situs Desktop" di menu browser Anda (Chrome/Safari) untuk melanjutkan.
+                  Aktifkan "Situs Desktop" pada browser Anda (Chrome/Safari) untuk melanjutkan.
                 </div>
              </div>
              
@@ -83,7 +83,7 @@ export default function DeviceDefender() {
                    <RotateCw className="w-5 h-5 text-emerald-400" />
                 </div>
                 <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                  Gunakan mode Landscape (Miringkan HP) jika Anda sudah mengaktifkan mode desktop.
+                  Gunakan device yang support untuk mendapatkan pengalaman yang lebih baik.
                 </div>
              </div>
           </div>
