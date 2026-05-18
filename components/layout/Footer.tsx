@@ -3,7 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import { 
-  Atom, 
   ArrowUpRight,
   Heart,
   Zap
@@ -50,8 +49,8 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="sm:col-span-2 lg:col-span-1 space-y-6 md:space-y-8">
             <Link href="/" className="flex items-center gap-3 group w-fit">
-              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-2 md:p-2.5 rounded-xl md:rounded-2xl shadow-lg group-hover:scale-105 transition-transform">
-                <Atom className="w-5 h-5 md:w-6 md:h-6 text-white" />
+              <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl shadow-lg group-hover:scale-105 transition-transform duration-500 flex items-center justify-center overflow-hidden bg-black/40 border border-white/10 shrink-0">
+                <img src="/logo.png" alt="Arshaka Edu Logo" className="w-full h-full object-contain p-1" />
               </div>
               <span className="font-black text-lg md:text-xl tracking-tighter text-white">
                 ARSHAKA<span className="text-indigo-400">EDU</span>
@@ -62,14 +61,13 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-3">
               {[
-                { name: "GitHub", icon: <GithubIcon />, href: "https://github.com" },
-                { name: "Discord", icon: <DiscordIcon />, href: "https://discord.com" },
-                { name: "Telegram", icon: <TelegramIcon />, href: "https://t.me" },
+                { name: "GitHub", icon: <GithubIcon />, href: "https://github.com/HaqiKuy470" },
+                { name: "Discord", icon: <DiscordIcon />, href: "#" },
+                { name: "Telegram", icon: <TelegramIcon />, href: "https://t.me/+AbXUSinrWzFhMmVl" },
               ].map((social, i) => (
                 <Link 
                   key={i} 
                   href={social.href} 
-                  target="_blank"
                   className="p-2.5 md:p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-zinc-400 hover:text-white"
                   aria-label={social.name}
                 >
@@ -97,11 +95,21 @@ export default function Footer() {
             <div className="space-y-4 md:space-y-6">
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Ekosistem</h3>
               <ul className="space-y-3 md:space-y-4">
-                {['Tentang Kami', 'Untuk Guru', 'Open Source', 'Kontribusi', 'Donasi'].map((item) => (
-                  <li key={item}>
-                    <Link href="/simulasi" className="text-sm font-bold text-zinc-400 hover:text-white transition-colors flex items-center gap-2 group">
-                      {item}
-                      <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                {[
+                  { name: 'Tentang Kami', href: '#' },
+                  { name: 'Untuk Guru', href: '/dashboard' },
+                  { name: 'Open Source', href: 'https://github.com/HaqiKuy470/Arshaka_Edu', external: true },
+                  { name: 'Kontribusi', href: 'https://github.com/HaqiKuy470/Arshaka_Edu/CONTRIBUTING.md', external: true },
+                  { name: 'Donasi', href: '/donasi' },
+                ].map((item) => (
+                  <li key={item.name}>
+                    <Link 
+                      href={item.href} 
+                      target={item.external ? "_blank" : undefined}
+                      className="text-sm font-bold text-zinc-400 hover:text-white transition-colors flex items-center gap-2 group"
+                    >
+                      {item.name}
+                      <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all shrink-0" />
                     </Link>
                   </li>
                 ))}
@@ -119,9 +127,9 @@ export default function Footer() {
                 <p className="text-xs text-zinc-400 leading-relaxed font-medium">
                   Bantu kami menyediakan simulasi terbaik untuk jutaan siswa di Indonesia.
                 </p>
-                <button className="w-full py-3 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl md:rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/20 active:scale-95">
+                <Link href="/donasi" className="block text-center w-full py-3 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl md:rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/20 active:scale-95">
                   Donasi Sekarang
-                </button>
+                </Link>
              </div>
           </div>
         </div>
@@ -139,8 +147,8 @@ export default function Footer() {
               Made with <Heart className="w-3 h-3 text-rose-500 animate-pulse" /> for Education
             </div>
             <div className="flex gap-4">
-              <Link href="/privasi" className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Privacy</Link>
-              <Link href="/syarat" className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Terms</Link>
+              <Link href="/privacy" className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Privacy</Link>
+              <Link href="/terms" className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Terms</Link>
             </div>
           </div>
         </div>

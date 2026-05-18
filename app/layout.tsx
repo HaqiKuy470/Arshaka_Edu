@@ -4,7 +4,7 @@ import "./globals.css";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
 import AuthProvider from "@/components/auth/AuthProvider";
 import { auth } from "@/lib/auth";
-
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -23,12 +23,17 @@ export const metadata: Metadata = {
   description: "Platform simulasi pembelajaran interaktif berbasis web yang mendefinisikan ulang cara kita belajar sains dan teknologi melalui visualisasi mendalam.",
   keywords: ["edukasi", "simulasi", "sains", "fisika", "kimia", "interaktif", "belajar gratis"],
   authors: [{ name: "Arshaka Team" }],
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
   openGraph: {
     title: "Arshaka Edu | Belajar Tanpa Batas",
     description: "Eksplorasi dunia sains melalui simulasi interaktif gratis.",
     type: "website",
     locale: "id_ID",
-    url: "https://arshakaedu.com",
+    url: "https://edu.arshakahq.com",
     siteName: "Arshaka Edu",
   },
   twitter: {
@@ -51,13 +56,15 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
   return (
-    <html lang="id" className="dark scroll-smooth">
-      <body className={`${inter.variable} ${outfit.variable} min-h-screen flex flex-col font-sans antialiased text-zinc-300 bg-[#050505] selection:bg-indigo-500/30 selection:text-indigo-200`}>
-        <AuthProvider session={session}>
-          <LayoutWrapper>
-            {children}
-          </LayoutWrapper>
-        </AuthProvider>
+    <html lang="id" className="scroll-smooth" suppressHydrationWarning>
+      <body className={`${inter.variable} ${outfit.variable} min-h-screen flex flex-col font-sans antialiased text-foreground bg-background selection:bg-indigo-500/30 selection:text-indigo-200 transition-colors duration-300`}>
+        <ThemeProvider>
+          <AuthProvider session={session}>
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

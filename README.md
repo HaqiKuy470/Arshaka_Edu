@@ -91,7 +91,7 @@
 
 ```bash
 # Clone repositori
-git clone https://github.com/username/arshaka_edu.git
+git clone https://github.com/haqikuy470/arshaka_edu.git
 cd arshaka_edu
 
 # Install dependensi
@@ -111,5 +111,5 @@ Proyek ini dilisensikan di bawah **MIT License** — bebas digunakan, dimodifika
 
 ## 📬 Kontak & Komunitas
 
-- 🌐 Website: [arshakaedu.id](https://arshakaedu.id)
-- 📧 Email: halo@arshakaedu.id
+- 🌐 Website: [edu.arshakahq.com](https://edu.arshakahq.com)
+- 📧 Email: [EMAIL_ADDRESS](haqikuy470@gmail.com)

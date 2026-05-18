@@ -5,15 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Atom, 
   Menu, 
   X, 
   LayoutDashboard,
   Search,
   Globe,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Sun,
+  Moon
 } from "lucide-react";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,8 +24,11 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     
@@ -71,9 +76,9 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 md:gap-3 group shrink-0">
             <div className="relative">
-              <div className="absolute inset-0 bg-indigo-500 blur-xl opacity-20 group-hover:opacity-40 transition-opacity" />
-              <div className="relative bg-gradient-to-br from-indigo-500 to-purple-600 p-2 md:p-2.5 rounded-xl md:rounded-2xl shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-500">
-                <Atom className="w-5 h-5 md:w-6 md:h-6 text-white animate-spin-slow" />
+              <div className="absolute inset-0 bg-indigo-500 blur-xl opacity-25 group-hover:opacity-45 transition-opacity" />
+              <div className="relative w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl shadow-lg group-hover:scale-105 transition-transform duration-500 flex items-center justify-center overflow-hidden bg-black/40 border border-white/10">
+                <img src="/logo.png" alt="Arshaka Edu Logo" className="w-full h-full object-contain p-1" />
               </div>
             </div>
             <div className="flex flex-col">
@@ -105,6 +110,21 @@ export default function Navbar() {
             >
                <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
                <div className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity animate-pulse" />
+            </button>
+
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="flex p-2 md:p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-zinc-400 hover:text-white group"
+              aria-label="Ubah tema"
+            >
+              {!mounted ? (
+                <div className="w-4 h-4 shrink-0" />
+              ) : theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400 group-hover:rotate-45 transition-transform duration-500 shrink-0" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-500 group-hover:-rotate-12 transition-transform duration-500 shrink-0" />
+              )}
             </button>
 
             {/* Dashboard — hidden on mobile */}
@@ -226,6 +246,23 @@ export default function Navbar() {
                 </div>
                 <span className="font-black text-xs uppercase tracking-widest text-white">Eksplorasi Simulasi</span>
               </Link>
+              <button 
+                onClick={toggleTheme}
+                className="flex items-center gap-4 w-full p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all text-left group"
+              >
+                <div className="p-2.5 bg-white/5 rounded-xl text-zinc-400 group-hover:scale-110 transition-transform">
+                  {!mounted ? (
+                    <div className="w-5 h-5 shrink-0" />
+                  ) : theme === 'dark' ? (
+                    <Sun className="w-5 h-5 text-amber-400 shrink-0" />
+                  ) : (
+                    <Moon className="w-5 h-5 text-indigo-400 shrink-0" />
+                  )}
+                </div>
+                <span className="font-black text-xs uppercase tracking-widest text-white">
+                  {!mounted ? 'Ubah Tema' : `Mode ${theme === 'dark' ? 'Terang' : 'Gelap'}`}
+                </span>
+              </button>
               <Link 
                 href="/dashboard"
                 onClick={() => setIsOpen(false)}

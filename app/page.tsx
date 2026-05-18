@@ -61,7 +61,7 @@ export default function Home() {
           </div>
           
           <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white leading-[0.9] px-2">
-            BELAJAR SAINS <br />
+            BELAJAR DAN PRAKTIK <br />
             <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">TANPA BATAS</span>
           </h1>
           

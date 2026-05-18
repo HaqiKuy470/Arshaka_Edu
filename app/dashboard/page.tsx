@@ -44,6 +44,10 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
 
+  const user = session.user;
+  const isOnboarded = (user as { isOnboarded?: boolean }).isOnboarded ?? false;
+  if (!isOnboarded) redirect('/onboarding');
+
   const userId = session.user.id;
 
   // Ambil statistik dari database (paralel)
@@ -60,7 +64,6 @@ export default async function DashboardPage() {
   const timeLabel = totalHours > 0 ? `${totalHours} Jam ${totalMinutes} Mnt` : totalMinutes > 0 ? `${totalMinutes} Mnt` : '0 Mnt';
   const badgeCount = badgeRows[0]?.count ?? 0;
 
-  const user = session.user;
   const role = (user as { role?: string }).role ?? 'student';
 
   if (role === 'teacher') {

@@ -24,6 +24,7 @@ export const users = pgTable('users', {
   role: text('role', { enum: ['student', 'teacher', 'admin'] })
     .notNull()
     .default('student'),
+  isOnboarded: boolean('is_onboarded').default(false).notNull(),
   grade: text('grade'), // jenjang: SD, SMP, SMA, Kuliah, Umum
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
