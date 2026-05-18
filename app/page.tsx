@@ -18,7 +18,10 @@ import {
   ChevronRight,
   ShieldCheck,
   Users,
-  Layers
+  Layers,
+  GraduationCap,
+  Presentation,
+  Puzzle
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -222,6 +225,146 @@ export default function Home() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Platform Features (Ekosistem Belajar) ── */}
+      <section className="w-full py-16 sm:py-24 md:py-32 relative z-10 bg-black/40 border-b border-white/5">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="text-center space-y-3 md:space-y-4 mb-16 md:mb-24">
+             <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">
+               <Zap className="w-3 h-3" />
+               Ekosistem Belajar
+             </div>
+             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white uppercase">Solusi Pembelajaran Interaktif</h2>
+             <p className="text-zinc-500 max-w-xl mx-auto font-medium text-sm md:text-base">
+               Arshaka Edu dirancang khusus untuk mendukung kolaborasi dan kemajuan di setiap jenjang pendidikan.
+             </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-10">
+            {/* Untuk Siswa */}
+            <motion.div 
+              whileHover={{ y: -8 }}
+              className="group relative rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-indigo-500/20 p-8 sm:p-10 flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-500"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full pointer-events-none group-hover:bg-indigo-500/10 transition-colors duration-500" />
+              <div className="space-y-6">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform duration-500">
+                  <GraduationCap className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tight">Untuk Siswa</h3>
+                  <p className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mt-1">Eksplorasi & Gamifikasi</p>
+                </div>
+                <ul className="space-y-4 text-zinc-400 text-sm font-medium">
+                  <li className="flex items-start gap-3">
+                    <span className="text-base">🎮</span>
+                    <span>Simulasi interaktif dengan kontrol real-time yang responsif</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-base">📝</span>
+                    <span>Lembar kerja digital terintegrasi untuk latihan praktis</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-base">📈</span>
+                    <span>Rekam hasil eksperimen otomatis <span className="text-[10px] font-bold text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded-full ml-1 whitespace-nowrap">Butuh Akun</span></span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-base">🏆</span>
+                    <span>Gamifikasi interaktif (poin, badge, level belajar) <span className="text-[10px] font-bold text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded-full ml-1 whitespace-nowrap">Butuh Akun</span></span>
+                  </li>
+                </ul>
+              </div>
+              <div className="pt-8 border-t border-white/5 mt-8 flex items-center justify-between">
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Siap Belajar?</span>
+                <Link href="/login" className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-400 hover:text-white transition-colors group/btn">
+                  Mulai Sekarang
+                  <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            </motion.div>
+
+            {/* Untuk Guru */}
+            <motion.div 
+              whileHover={{ y: -8 }}
+              className="group relative rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-purple-500/20 p-8 sm:p-10 flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-500"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 blur-3xl rounded-full pointer-events-none group-hover:bg-purple-500/10 transition-colors duration-500" />
+              <div className="space-y-6">
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform duration-500">
+                  <Presentation className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tight">Untuk Guru</h3>
+                  <p className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mt-1">Manajemen & Evaluasi</p>
+                </div>
+                <ul className="space-y-4 text-zinc-400 text-sm font-medium">
+                  <li className="flex items-start gap-3">
+                    <span className="text-base">📋</span>
+                    <span>Buat kelas virtual dan pantau progres belajar siswa secara real-time</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-base">📌</span>
+                    <span>Tambahkan modul simulasi interaktif ke dalam tugas belajar</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-base">🗒️</span>
+                    <span>Panduan mengajar lengkap untuk setiap simulasi yang tersedia</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-base">📊</span>
+                    <span>Dashboard laporan analitis perkembangan kelas &amp; individu</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="pt-8 border-t border-white/5 mt-8 flex items-center justify-between">
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Portal Guru</span>
+                <Link href="/login" className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-purple-400 hover:text-white transition-colors group/btn">
+                  Akses Portal
+                  <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            </motion.div>
+
+            {/* Untuk Pengembang */}
+            <motion.div 
+              whileHover={{ y: -8 }}
+              className="group relative rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-emerald-500/20 p-8 sm:p-10 flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-500"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full pointer-events-none group-hover:bg-emerald-500/10 transition-colors duration-500" />
+              <div className="space-y-6">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform duration-500">
+                  <Puzzle className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tight">Untuk Pengembang</h3>
+                  <p className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mt-1">Integrasi &amp; Ekstensi</p>
+                </div>
+                <ul className="space-y-4 text-zinc-400 text-sm font-medium">
+                  <li className="flex items-start gap-3">
+                    <span className="text-base">🔌</span>
+                    <span>API terbuka untuk integrasi penuh dengan LMS internal sekolah</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-base">🧩</span>
+                    <span>Plugin pendukung Google Classroom &amp; Moodle siap pakai</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-base">🛠️</span>
+                    <span>Dokumentasi teknis lengkap dan SDK simulasi interaktif</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="pt-8 border-t border-white/5 mt-8 flex items-center justify-between">
+                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Developer Hub</span>
+                <Link href="/login" className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-400 hover:text-white transition-colors group/btn">
+                  Buka Docs
+                  <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>

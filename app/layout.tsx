@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
+import AuthProvider from "@/components/auth/AuthProvider";
+import { auth } from "@/lib/auth";
+
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -41,17 +44,20 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
   return (
     <html lang="id" className="dark scroll-smooth">
       <body className={`${inter.variable} ${outfit.variable} min-h-screen flex flex-col font-sans antialiased text-zinc-300 bg-[#050505] selection:bg-indigo-500/30 selection:text-indigo-200`}>
-        <LayoutWrapper>
-          {children}
-        </LayoutWrapper>
+        <AuthProvider session={session}>
+          <LayoutWrapper>
+            {children}
+          </LayoutWrapper>
+        </AuthProvider>
       </body>
     </html>
   );

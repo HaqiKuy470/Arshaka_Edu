@@ -388,12 +388,12 @@
 
 | Komponen | Teknologi |
 |----------|-----------|
-| Frontend | React.js |
-| Animasi & Simulasi | Canvas API, Three.js, p5.js |
-| Backend | Node.js  |
-| Database | PostgreSQL, Docker |
-| Auth | JWT |
-| PWA | Service Worker + Manifest |
+| **Core Framework** | Next.js 14+ (App Router), React.js |
+| **Styling & Animasi**| Vanilla CSS / Tailwind CSS, Framer Motion |
+| **Animasi & Simulasi**| Canvas API, Three.js, p5.js, Framer Motion |
+| **Backend & Actions**| Next.js Server Actions, Edge Middleware |
+| **Database & ORM**   | PostgreSQL (Docker), Drizzle ORM |
+| **Autentikasi (Auth)**| NextAuth.js v5 (OAuth: Google & GitHub only) |
 
 ---
 
