@@ -6,8 +6,8 @@ import AuthProvider from "@/components/auth/AuthProvider";
 import { auth } from "@/lib/auth";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
-const inter = Inter({ 
-  subsets: ["latin"], 
+const inter = Inter({
+  subsets: ["latin"],
   variable: "--font-inter",
   display: 'swap',
 });
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     description: "Eksplorasi dunia sains melalui simulasi interaktif gratis.",
     type: "website",
     locale: "id_ID",
-    url: "https://edu.arshakahq.com",
+    url: "https://edu.heyhaqi.my.id",
     siteName: "Arshaka Edu",
   },
   twitter: {

@@ -6,12 +6,12 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: '*',
       allow: '/',
       disallow: [
-        '/admin/', 
-        '/dashboard/', 
+        '/admin/',
+        '/dashboard/',
         '/onboarding/',
         '/api/'
       ],
     },
-    sitemap: 'https://edu.arshakahq.com/sitemap.xml',
+    sitemap: 'https://edu.heyhaqi.my.id/sitemap.xml',
   };
 }
