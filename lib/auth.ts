@@ -40,8 +40,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     // ✅ GitHub OAuth
     GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      clientId: process.env.LOGIN_GIT!,
+      clientSecret: process.env.LOGIN_GIT_SECRET!,
       allowDangerousEmailAccountLinking: true,
     }),
   ],
@@ -79,11 +79,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
-        
+
         if (user.email === 'haqikuy470@gmail.com') {
           (session.user as { role?: string }).role = 'admin';
           (session.user as { isOnboarded?: boolean }).isOnboarded = true;
-          
+
           // Pastikan di database ter-update jika terlewat
           if ((user as { role?: string }).role !== 'admin' || !(user as { isOnboarded?: boolean }).isOnboarded) {
             db.update(users)
@@ -95,7 +95,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Ambil role dari db user jika ada
           (session.user as { role?: string }).role =
             (user as { role?: string }).role ?? 'student';
-          
+
           // Ambil status onboarding dari db
           (session.user as { isOnboarded?: boolean }).isOnboarded =
             (user as { isOnboarded?: boolean }).isOnboarded ?? false;
