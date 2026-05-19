@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { users, whitelistedEmails } from '@/lib/db/schema';
 import { eq, count, desc } from 'drizzle-orm';
 import Link from 'next/link';
 import { Shield, Sparkles, ArrowLeft } from 'lucide-react';
@@ -21,13 +21,15 @@ export default async function AdminPage() {
     studentRows,
     teacherRows,
     adminRows,
-    allUsers
+    allUsers,
+    allWhitelisted
   ] = await Promise.all([
     db.select({ count: count() }).from(users),
     db.select({ count: count() }).from(users).where(eq(users.role, 'student')),
     db.select({ count: count() }).from(users).where(eq(users.role, 'teacher')),
     db.select({ count: count() }).from(users).where(eq(users.role, 'admin')),
     db.select().from(users).orderBy(desc(users.createdAt)),
+    db.select().from(whitelistedEmails).orderBy(desc(whitelistedEmails.createdAt)),
   ]);
 
   const stats = {
@@ -89,7 +91,11 @@ export default async function AdminPage() {
         </div>
 
         {/* Client Interactive Component */}
-        <AdminClient initialUsers={sanitizedUsers} stats={stats} />
+        <AdminClient 
+          initialUsers={sanitizedUsers} 
+          stats={stats} 
+          initialWhitelisted={allWhitelisted} 
+        />
 
       </div>
 

@@ -3,7 +3,7 @@ import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db } from '@/lib/db';
-import { users, accounts, sessions, verificationTokens } from '@/lib/db/schema';
+import { users, accounts, sessions, verificationTokens, whitelistedEmails } from '@/lib/db/schema';
 import { authConfig } from '@/lib/auth.config';
 import { eq } from 'drizzle-orm';
 
@@ -27,12 +27,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
+      authorization: {
+        params: {
+          scope: 'openid email profile https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.rosters.readonly',
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
+        },
+      },
     }),
 
     // ✅ GitHub OAuth
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   callbacks: {
@@ -45,6 +55,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             .where(eq(users.email, 'haqikuy470@gmail.com'));
         } catch (err) {
           console.error('[ADMIN_SIGNIN_UPGRADE_ERROR]', err);
+        }
+      } else if (user.email) {
+        try {
+          // Cek apakah email terdaftar di whitelist sekolah/kampus terverifikasi
+          const isWhitelisted = await db.query.whitelistedEmails.findFirst({
+            where: eq(whitelistedEmails.email, user.email),
+          });
+
+          if (isWhitelisted) {
+            // Upgrade secara otomatis ke role: 'teacher' (Guru) terverifikasi & selesaikan onboarding
+            await db
+              .update(users)
+              .set({ role: 'teacher', isOnboarded: true })
+              .where(eq(users.email, user.email));
+          }
+        } catch (err) {
+          console.error('[WHITELIST_SIGNIN_UPGRADE_ERROR]', err);
         }
       }
       return true;

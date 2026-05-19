@@ -10,9 +10,11 @@ import {
   Check, 
   Mail,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  Plus as PlusIcon
 } from 'lucide-react';
-import { updateUserRole } from './actions';
+import { updateUserRole, addWhitelistedEmail, removeWhitelistedEmail } from './actions';
 
 interface UserItem {
   id: string;
@@ -24,6 +26,13 @@ interface UserItem {
   createdAt: Date;
 }
 
+interface WhitelistedItem {
+  id: string;
+  email: string;
+  notes: string | null;
+  createdAt: Date;
+}
+
 interface AdminClientProps {
   initialUsers: UserItem[];
   stats: {
@@ -32,13 +41,19 @@ interface AdminClientProps {
     teachers: number;
     admins: number;
   };
+  initialWhitelisted: WhitelistedItem[];
 }
 
-export default function AdminClient({ initialUsers, stats }: AdminClientProps) {
+export default function AdminClient({ initialUsers, stats, initialWhitelisted }: AdminClientProps) {
   const [usersList, setUsersList] = useState<UserItem[]>(initialUsers);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [whitelist, setWhitelist] = useState<WhitelistedItem[]>(initialWhitelisted);
+  const [newEmail, setNewEmail] = useState('');
+  const [newNotes, setNewNotes] = useState('');
+  const [addingEmail, setAddingEmail] = useState(false);
+  const [deletingEmailId, setDeletingEmailId] = useState<string | null>(null);
 
   const handleRoleChange = async (userId: string, currentRole: string, newRole: 'student' | 'teacher' | 'admin') => {
     if (currentRole === newRole) return;
@@ -56,6 +71,47 @@ export default function AdminClient({ initialUsers, stats }: AdminClientProps) {
       setStatusMessage({ type: 'error', text: res.error || 'Gagal mengubah role' });
     }
     setUpdatingId(null);
+  };
+
+  const handleAddWhitelist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmail) return;
+    setAddingEmail(true);
+    setStatusMessage(null);
+
+    const res = await addWhitelistedEmail(newEmail, newNotes);
+    if (res.success) {
+      setWhitelist(prev => [
+        {
+          id: Math.random().toString(),
+          email: newEmail.toLowerCase().trim(),
+          notes: newNotes || null,
+          createdAt: new Date(),
+        },
+        ...prev
+      ]);
+      setNewEmail('');
+      setNewNotes('');
+      setStatusMessage({ type: 'success', text: 'Email berhasil ditambahkan ke whitelist!' });
+    } else {
+      setStatusMessage({ type: 'error', text: res.error || 'Gagal menambahkan email ke whitelist.' });
+    }
+    setAddingEmail(false);
+  };
+
+  const handleRemoveWhitelist = async (id: string, email: string) => {
+    if (!confirm(`Hapus ${email} dari whitelist?`)) return;
+    setDeletingEmailId(id);
+    setStatusMessage(null);
+
+    const res = await removeWhitelistedEmail(id);
+    if (res.success) {
+      setWhitelist(prev => prev.filter(item => item.id !== id));
+      setStatusMessage({ type: 'success', text: 'Email berhasil dihapus dari whitelist!' });
+    } else {
+      setStatusMessage({ type: 'error', text: res.error || 'Gagal menghapus email.' });
+    }
+    setDeletingEmailId(null);
   };
 
   const filteredUsers = usersList.filter(u => 
@@ -250,6 +306,121 @@ export default function AdminClient({ initialUsers, stats }: AdminClientProps) {
               )}
             </tbody>
           </table>
+        </div>
+
+      </div>
+
+      {/* Kelola Whitelist Email Domain Sekolah/Kampus */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Form Tambah Whitelist */}
+        <div className="bg-zinc-900 border border-white/5 p-6 rounded-3xl h-fit space-y-4">
+          <div>
+            <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+              <PlusIcon className="w-4 h-4 text-purple-400" /> Tambah Whitelist Baru
+            </h3>
+            <p className="text-zinc-500 text-[11px] leading-relaxed mt-1">
+              Email yang didaftarkan di sini akan langsung terverifikasi sebagai Guru saat pertama kali mendaftar/login.
+            </p>
+          </div>
+
+          <form onSubmit={handleAddWhitelist} className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-zinc-400">Alamat Email Guru</label>
+              <input
+                required
+                type="email"
+                placeholder="nama.guru@sekolah.sch.id"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-500/50 transition-colors text-white"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-zinc-400">Catatan / Asal Sekolah</label>
+              <input
+                type="text"
+                placeholder="Guru Fisika SMA N 1 Jakarta"
+                value={newNotes}
+                onChange={(e) => setNewNotes(e.target.value)}
+                className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-500/50 transition-colors text-white"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={addingEmail}
+              className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2"
+            >
+              {addingEmail ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Menyimpan...
+                </>
+              ) : (
+                'Tambahkan ke Whitelist'
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Daftar Whitelisted Emails */}
+        <div className="lg:col-span-2 bg-zinc-900 border border-white/5 rounded-3xl overflow-hidden">
+          <div className="p-6 border-b border-white/5">
+            <h3 className="text-sm font-black text-white uppercase tracking-wider">
+              Daftar Whitelist Guru Terverifikasi
+            </h3>
+            <p className="text-zinc-500 text-[11px] leading-relaxed mt-1">
+              Daftar seluruh email khusus yang memiliki hak akses otomatis sebagai Guru.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/5 bg-white/[0.01] text-[9px] font-black uppercase tracking-wider text-zinc-500">
+                  <th className="py-3 px-6">Email Guru</th>
+                  <th className="py-3 px-6">Catatan / Keterangan</th>
+                  <th className="py-3 px-6 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {whitelist.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-8 text-center text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+                      Belum ada email yang di-whitelist
+                    </td>
+                  </tr>
+                ) : (
+                  whitelist.map((item) => (
+                    <tr key={item.id} className="hover:bg-white/[0.01] transition-colors text-xs">
+                      <td className="py-3.5 px-6 font-semibold text-white">
+                        {item.email}
+                      </td>
+                      <td className="py-3.5 px-6 text-zinc-400 font-medium">
+                        {item.notes || '-'}
+                      </td>
+                      <td className="py-3.5 px-6 text-right">
+                        <button
+                          type="button"
+                          disabled={deletingEmailId === item.id}
+                          onClick={() => handleRemoveWhitelist(item.id, item.email)}
+                          className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg transition-colors inline-flex items-center justify-center disabled:opacity-50"
+                          title="Hapus dari Whitelist"
+                        >
+                          {deletingEmailId === item.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>

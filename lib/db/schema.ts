@@ -167,6 +167,74 @@ export const userBadges = pgTable(
 );
 
 // ================================================================
+// TABEL CLASSROOMS (Kelas Virtual)
+// ================================================================
+export const classrooms = pgTable('classrooms', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  code: text('code').notNull().unique(), // e.g. "IP1-8930"
+  name: text('name').notNull(),          // e.g. "Kelas 10 IPA 1"
+  subject: text('subject').notNull(),    // e.g. "Fisika"
+  teacherId: uuid('teacher_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ================================================================
+// TABEL CLASSROOM ENROLLMENTS (Siswa Terdaftar di Kelas)
+// ================================================================
+export const classroomEnrollments = pgTable(
+  'classroom_enrollments',
+  {
+    classroomId: uuid('classroom_id')
+      .notNull()
+      .references(() => classrooms.id, { onDelete: 'cascade' }),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    enrolledAt: timestamp('enrolled_at').defaultNow().notNull(),
+  },
+  (ce) => ({
+    compoundKey: primaryKey({ columns: [ce.classroomId, ce.studentId] }),
+  })
+);
+
+// ================================================================
+// TABEL ASSIGNMENTS (Tugas Kelas Virtual)
+// ================================================================
+export const assignments = pgTable('assignments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  classroomId: uuid('classroom_id')
+    .notNull()
+    .references(() => classrooms.id, { onDelete: 'cascade' }),
+  simulationId: text('simulation_id')
+    .notNull()
+    .references(() => simulations.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  instructions: text('instructions'),
+  dueDate: timestamp('due_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ================================================================
+// TABEL SUBMISSIONS (Pemberian Tugas / Nilai)
+// ================================================================
+export const submissions = pgTable('submissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  assignmentId: uuid('assignment_id')
+    .notNull()
+    .references(() => assignments.id, { onDelete: 'cascade' }),
+  studentId: uuid('student_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  status: text('status', { enum: ['pending', 'completed'] }).default('pending').notNull(),
+  grade: integer('grade'), // Nilai dari guru (0-100)
+  feedback: text('feedback'),
+  submittedAt: timestamp('submitted_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ================================================================
 // RELASI
 // ================================================================
 export const usersRelations = relations(users, ({ many }) => ({
@@ -175,11 +243,61 @@ export const usersRelations = relations(users, ({ many }) => ({
   simulationProgress: many(simulationProgress),
   simulationHistory: many(simulationHistory),
   userBadges: many(userBadges),
+  classroomsTeacher: many(classrooms), // Kelas yang diajarkan
+  enrollments: many(classroomEnrollments), // Kelas yang diikuti
+  submissions: many(submissions),
+}));
+
+export const classroomsRelations = relations(classrooms, ({ one, many }) => ({
+  teacher: one(users, {
+    fields: [classrooms.teacherId],
+    references: [users.id],
+  }),
+  enrollments: many(classroomEnrollments),
+  assignments: many(assignments),
+}));
+
+export const classroomEnrollmentsRelations = relations(
+  classroomEnrollments,
+  ({ one }) => ({
+    classroom: one(classrooms, {
+      fields: [classroomEnrollments.classroomId],
+      references: [classrooms.id],
+    }),
+    student: one(users, {
+      fields: [classroomEnrollments.studentId],
+      references: [users.id],
+    }),
+  })
+);
+
+export const assignmentsRelations = relations(assignments, ({ one, many }) => ({
+  classroom: one(classrooms, {
+    fields: [assignments.classroomId],
+    references: [classrooms.id],
+  }),
+  simulation: one(simulations, {
+    fields: [assignments.simulationId],
+    references: [simulations.id],
+  }),
+  submissions: many(submissions),
+}));
+
+export const submissionsRelations = relations(submissions, ({ one }) => ({
+  assignment: one(assignments, {
+    fields: [submissions.assignmentId],
+    references: [assignments.id],
+  }),
+  student: one(users, {
+    fields: [submissions.studentId],
+    references: [users.id],
+  }),
 }));
 
 export const simulationsRelations = relations(simulations, ({ many }) => ({
   progress: many(simulationProgress),
   history: many(simulationHistory),
+  assignments: many(assignments),
 }));
 
 export const simulationProgressRelations = relations(
@@ -225,3 +343,21 @@ export type SimulationProgress = typeof simulationProgress.$inferSelect;
 export type SimulationHistory = typeof simulationHistory.$inferSelect;
 export type Badge = typeof badges.$inferSelect;
 export type UserBadge = typeof userBadges.$inferSelect;
+export type Classroom = typeof classrooms.$inferSelect;
+export type ClassroomEnrollment = typeof classroomEnrollments.$inferSelect;
+export type Assignment = typeof assignments.$inferSelect;
+export type Submission = typeof submissions.$inferSelect;
+
+// ================================================================
+// TABEL WHITELISTED EMAILS (untuk domain/email sekolah terverifikasi)
+// ================================================================
+export const whitelistedEmails = pgTable('whitelisted_emails', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull().unique(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type WhitelistedEmail = typeof whitelistedEmails.$inferSelect;
+
+
