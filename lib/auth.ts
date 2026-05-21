@@ -119,26 +119,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        
-        // Ambil data terbaru dari database untuk memastikan role/onboarding sinkron
+        token.role = (user as any).role ?? 'student';
+        token.isOnboarded = (user as any).isOnboarded ?? false;
+      }
+      
+      // Ambil data terbaru dari database untuk memastikan role/onboarding sinkron
+      if (token.id) {
         try {
           const [dbUser] = await db
             .select()
             .from(users)
-            .where(eq(users.id, user.id as string))
+            .where(eq(users.id, token.id as string))
             .limit(1);
 
           if (dbUser) {
             token.role = dbUser.role;
             token.isOnboarded = dbUser.isOnboarded;
-          } else {
-            token.role = (user as any).role ?? 'student';
-            token.isOnboarded = (user as any).isOnboarded ?? false;
           }
         } catch (err) {
           console.error('[JWT_DB_LOOKUP_ERROR]', err);
-          token.role = (user as any).role ?? 'student';
-          token.isOnboarded = (user as any).isOnboarded ?? false;
         }
       }
       return token;
