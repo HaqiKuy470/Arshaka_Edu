@@ -116,28 +116,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return true;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = (user as any).role ?? 'student';
-        token.isOnboarded = (user as any).isOnboarded ?? false;
-      }
-      
-      // Ambil data terbaru dari database untuk memastikan role/onboarding sinkron
-      if (token.id) {
-        try {
-          const [dbUser] = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, token.id as string))
-            .limit(1);
+    async jwt({ token, user, trigger }) {
+      // Saat sign-in awal atau saat update di-trigger, ambil data fresh dari DB
+      if (user || trigger === 'update') {
+        const lookupId = user?.id ?? (token.id as string | undefined);
+        if (lookupId) {
+          try {
+            const [dbUser] = await db
+              .select()
+              .from(users)
+              .where(eq(users.id, lookupId))
+              .limit(1);
 
-          if (dbUser) {
-            token.role = dbUser.role;
-            token.isOnboarded = dbUser.isOnboarded;
+            if (dbUser) {
+              token.id = dbUser.id;
+              token.role = dbUser.role;
+              token.isOnboarded = dbUser.isOnboarded;
+            }
+          } catch (err) {
+            console.error('[JWT_DB_LOOKUP_ERROR]', err);
+            if (user) {
+              token.id = user.id;
+              token.role = (user as any).role ?? 'student';
+              token.isOnboarded = (user as any).isOnboarded ?? false;
+            }
           }
-        } catch (err) {
-          console.error('[JWT_DB_LOOKUP_ERROR]', err);
         }
       }
       return token;

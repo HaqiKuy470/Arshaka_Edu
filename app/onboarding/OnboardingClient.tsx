@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+// router tidak dibutuhkan — kita pakai hard redirect setelah onboarding
 import { 
   GraduationCap, 
   Presentation, 
@@ -30,7 +30,6 @@ export default function OnboardingClient({ user }: OnboardingClientProps) {
   const [grade, setGrade] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   const handleRoleSelect = (selectedRole: 'student' | 'teacher') => {
     setRole(selectedRole);
@@ -48,8 +47,10 @@ export default function OnboardingClient({ user }: OnboardingClientProps) {
     });
 
     if (result.success) {
-      router.push('/dashboard');
-      router.refresh();
+      // Gunakan hard redirect agar browser meminta session JWT baru dari server.
+      // Kalau pakai router.push(), cookie JWT lama yang masih isOnboarded:false
+      // akan menyebabkan loop redirect antara /onboarding dan /dashboard.
+      window.location.href = '/dashboard';
     } else {
       setError(result.error || 'Terjadi kesalahan sistem');
       setLoading(false);
@@ -99,6 +100,7 @@ export default function OnboardingClient({ user }: OnboardingClientProps) {
           >
             {/* Siswa Card */}
             <button
+              type="button"
               onClick={() => handleRoleSelect('student')}
               className="group text-left relative rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-indigo-500/30 p-8 sm:p-10 flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-500 hover:-translate-y-1"
             >
@@ -125,6 +127,7 @@ export default function OnboardingClient({ user }: OnboardingClientProps) {
 
             {/* Guru Card */}
             <button
+              type="button"
               onClick={() => handleRoleSelect('teacher')}
               className="group text-left relative rounded-[32px] bg-zinc-900/40 border border-white/5 hover:border-purple-500/30 p-8 sm:p-10 flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-500 hover:-translate-y-1"
             >

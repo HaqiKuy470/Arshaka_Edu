@@ -26,6 +26,7 @@ export async function completeOnboarding(formData: {
       .where(eq(users.id, session.user.id));
 
     revalidatePath('/dashboard');
+    revalidatePath('/onboarding');
     return { success: true };
   } catch (error) {
     console.error('[ONBOARDING_ERROR]', error);
