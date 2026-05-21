@@ -10,17 +10,17 @@ const AUTH_ROUTES = ['/login', '/register'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const proto = request.headers.get('x-forwarded-proto') || (request.nextUrl.protocol === 'https:' ? 'https' : 'http');
+  const isHttps = proto === 'https';
+
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
     // Sesuaikan dengan cookie name NextAuth v5 (secure prefix jika HTTPS)
-    cookieName:
-      request.nextUrl.protocol === 'https:'
-        ? '__Secure-authjs.session-token'
-        : 'authjs.session-token',
+    cookieName: isHttps ? '__Secure-authjs.session-token' : 'authjs.session-token',
   });
 
-  const isLoggedIn = !!token || request.cookies.has('authjs.session-token') || request.cookies.has('__Secure-authjs.session-token');
+  const isLoggedIn = !!token;
   const isProtected = PROTECTED.some((r) => pathname.startsWith(r));
   const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
 

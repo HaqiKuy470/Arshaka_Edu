@@ -1,11 +1,13 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
+import Credentials from 'next-auth/providers/credentials';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db } from '@/lib/db';
 import { users, accounts, sessions, verificationTokens, whitelistedEmails } from '@/lib/db/schema';
 import { authConfig } from '@/lib/auth.config';
 import { eq } from 'drizzle-orm';
+import { compare } from 'bcryptjs';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -16,13 +18,51 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     verificationTokensTable: verificationTokens,
   }),
   session: {
-    strategy: 'database',
+    strategy: 'jwt',
   },
   pages: {
     signIn: '/login',
     error: '/login',
   },
   providers: [
+    // ✅ Credentials Provider (Email & Password)
+    Credentials({
+      name: 'Credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, credentials.email as string))
+          .limit(1);
+
+        if (!user || !user.password) {
+          return null;
+        }
+
+        const isPasswordValid = await compare(credentials.password as string, user.password);
+        if (!isPasswordValid) {
+          return null;
+        }
+
+        return {
+          id: user.id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isOnboarded: user.isOnboarded,
+          image: user.image,
+        };
+      },
+    }),
+
     // ✅ Google OAuth
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -76,30 +116,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return true;
     },
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        
+        // Ambil data terbaru dari database untuk memastikan role/onboarding sinkron
+        try {
+          const [dbUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, user.id as string))
+            .limit(1);
 
-        if (user.email === 'haqikuy470@gmail.com') {
-          (session.user as { role?: string }).role = 'admin';
-          (session.user as { isOnboarded?: boolean }).isOnboarded = true;
-
-          // Pastikan di database ter-update jika terlewat
-          if ((user as { role?: string }).role !== 'admin' || !(user as { isOnboarded?: boolean }).isOnboarded) {
-            db.update(users)
-              .set({ role: 'admin', isOnboarded: true })
-              .where(eq(users.email, 'haqikuy470@gmail.com'))
-              .catch(console.error);
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.isOnboarded = dbUser.isOnboarded;
+          } else {
+            token.role = (user as any).role ?? 'student';
+            token.isOnboarded = (user as any).isOnboarded ?? false;
           }
-        } else {
-          // Ambil role dari db user jika ada
-          (session.user as { role?: string }).role =
-            (user as { role?: string }).role ?? 'student';
-
-          // Ambil status onboarding dari db
-          (session.user as { isOnboarded?: boolean }).isOnboarded =
-            (user as { isOnboarded?: boolean }).isOnboarded ?? false;
+        } catch (err) {
+          console.error('[JWT_DB_LOOKUP_ERROR]', err);
+          token.role = (user as any).role ?? 'student';
+          token.isOnboarded = (user as any).isOnboarded ?? false;
         }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token) {
+        session.user.id = token.id as string;
+        (session.user as any).role = (token.role as string) ?? 'student';
+        (session.user as any).isOnboarded = (token.isOnboarded as boolean) ?? false;
       }
       return session;
     },
