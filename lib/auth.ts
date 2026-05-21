@@ -86,40 +86,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
-      if (user.email === 'haqikuy470@gmail.com') {
-        try {
-          await db
-            .update(users)
-            .set({ role: 'admin', isOnboarded: true })
-            .where(eq(users.email, 'haqikuy470@gmail.com'));
-        } catch (err) {
-          console.error('[ADMIN_SIGNIN_UPGRADE_ERROR]', err);
-        }
-      } else if (user.email) {
-        try {
-          // Cek apakah email terdaftar di whitelist sekolah/kampus terverifikasi
-          const isWhitelisted = await db.query.whitelistedEmails.findFirst({
-            where: eq(whitelistedEmails.email, user.email),
-          });
-
-          if (isWhitelisted) {
-            // Upgrade secara otomatis ke role: 'teacher' (Guru) terverifikasi & selesaikan onboarding
-            await db
-              .update(users)
-              .set({ role: 'teacher', isOnboarded: true })
-              .where(eq(users.email, user.email));
-          }
-        } catch (err) {
-          console.error('[WHITELIST_SIGNIN_UPGRADE_ERROR]', err);
-        }
-      }
+    async signIn() {
       return true;
     },
     async jwt({ token, user, trigger }) {
-      // Saat sign-in awal atau saat update di-trigger, ambil data fresh dari DB
-      if (user || trigger === 'update') {
-        const lookupId = user?.id ?? (token.id as string | undefined);
+      const lookupId = user?.id ?? (token.id as string | undefined);
+      const lookupEmail = user?.email ?? (token.email as string | undefined);
+      const isHaqi = lookupEmail === 'haqikuy470@gmail.com';
+
+      // Jalankan query database jika:
+      // 1. Baru login (user didefinisikan)
+      // 2. Ada update trigger manual
+      // 3. User belum onboarded (agar mendeteksi perubahan status onboarding)
+      // 4. User adalah haqi tapi rolenya di session belum terupdate menjadi admin
+      if (
+        user ||
+        trigger === 'update' ||
+        !token.isOnboarded ||
+        (isHaqi && token.role !== 'admin')
+      ) {
         if (lookupId) {
           try {
             const [dbUser] = await db
@@ -129,16 +114,49 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               .limit(1);
 
             if (dbUser) {
+              let needsUpdate = false;
+              let updatedRole = dbUser.role;
+              let updatedIsOnboarded = dbUser.isOnboarded;
+
+              // Auto upgrade haqikuy470@gmail.com menjadi admin
+              if (dbUser.email === 'haqikuy470@gmail.com') {
+                if (dbUser.role !== 'admin' || !dbUser.isOnboarded) {
+                  updatedRole = 'admin';
+                  updatedIsOnboarded = true;
+                  needsUpdate = true;
+                }
+              } else if (dbUser.email) {
+                // Cek apakah email terdaftar di whitelist sekolah/kampus terverifikasi
+                const isWhitelisted = await db.query.whitelistedEmails.findFirst({
+                  where: eq(whitelistedEmails.email, dbUser.email),
+                });
+
+                if (isWhitelisted) {
+                  if (dbUser.role !== 'teacher' || !dbUser.isOnboarded) {
+                    updatedRole = 'teacher';
+                    updatedIsOnboarded = true;
+                    needsUpdate = true;
+                  }
+                }
+              }
+
+              if (needsUpdate) {
+                await db
+                  .update(users)
+                  .set({ role: updatedRole, isOnboarded: updatedIsOnboarded })
+                  .where(eq(users.id, dbUser.id));
+              }
+
               token.id = dbUser.id;
-              token.role = dbUser.role;
-              token.isOnboarded = dbUser.isOnboarded;
+              token.role = updatedRole;
+              token.isOnboarded = updatedIsOnboarded;
             }
           } catch (err) {
             console.error('[JWT_DB_LOOKUP_ERROR]', err);
             if (user) {
               token.id = user.id;
-              token.role = (user as any).role ?? 'student';
-              token.isOnboarded = (user as any).isOnboarded ?? false;
+              token.role = (user as { role?: string }).role ?? 'student';
+              token.isOnboarded = (user as { isOnboarded?: boolean }).isOnboarded ?? false;
             }
           }
         }
@@ -148,8 +166,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (session.user && token) {
         session.user.id = token.id as string;
-        (session.user as any).role = (token.role as string) ?? 'student';
-        (session.user as any).isOnboarded = (token.isOnboarded as boolean) ?? false;
+        (session.user as { role?: string }).role = (token.role as string) ?? 'student';
+        (session.user as { isOnboarded?: boolean }).isOnboarded = (token.isOnboarded as boolean) ?? false;
       }
       return session;
     },
