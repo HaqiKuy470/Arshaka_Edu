@@ -371,7 +371,10 @@ export default function Home() {
                 {/* Footer */}
                 <div className="relative z-10 pt-4 mt-5 border-t border-white/[0.06] flex items-center justify-between">
                   <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{card.footerLabel}</span>
-                  <Link href="/login" className={`flex items-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-widest ${card.linkColor} hover:text-white transition-colors group/btn`}>
+                  <Link
+                    href={i === 2 ? "/developers" : "/login"}
+                    className={`flex items-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-widest ${card.linkColor} hover:text-white transition-colors group/btn`}
+                  >
                     {card.linkLabel}
                     <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                   </Link>

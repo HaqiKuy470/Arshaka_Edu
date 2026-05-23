@@ -53,7 +53,7 @@ export default function DonasiPage() {
               <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                 Masa Depan
               </span>{" "}
-              Sains Indonesia
+              Pelajar Indonesia
             </h1>
 
             <p className="text-zinc-500 text-sm sm:text-base max-w-lg mx-auto leading-relaxed font-medium">
@@ -158,10 +158,6 @@ export default function DonasiPage() {
             </div>
           </div>
 
-          {/* Bottom thank-you note */}
-          <p className="text-center text-zinc-600 text-xs font-medium mt-10 sm:mt-14 flex items-center justify-center gap-1.5">
-            Dibuat dengan <Heart className="w-3 h-3 text-rose-500 fill-rose-500" /> untuk generasi pelajar Indonesia
-          </p>
         </div>
       </div>
     </div>

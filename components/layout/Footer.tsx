@@ -143,7 +143,7 @@ export default function Footer() {
               </div>
 
               <h3 className="text-sm font-black text-white leading-snug max-w-[180px]">
-                Dukung Pendidikan Gratis Selamanya
+                Dukung Kami 
               </h3>
               <p className="text-[11px] text-zinc-500 leading-relaxed font-medium">
                 Bantu kami menyediakan simulasi terbaik untuk jutaan siswa di Indonesia.
