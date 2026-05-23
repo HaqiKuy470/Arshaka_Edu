@@ -112,4 +112,4 @@ Proyek ini dilisensikan di bawah **MIT License** — bebas digunakan, dimodifika
 ## 📬 Kontak & Komunitas
 
 - 🌐 Website: [edu.heyhaqi.my.id](https://edu.heyhaqi.my.id)
-- 📧 Email: [EMAIL_ADDRESS](haqikuy470@gmail.com)
+- 📧 Email: [Contact](haqikuy470@gmail.com)

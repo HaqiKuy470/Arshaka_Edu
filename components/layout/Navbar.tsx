@@ -4,24 +4,22 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Menu, 
-  X, 
-  LayoutDashboard,
-  Search,
-  Globe,
-  ArrowRight,
-  Sparkles,
-  Sun,
-  Moon
+import {
+  Menu, X, LayoutDashboard, Search, Globe,
+  ArrowRight, Sparkles, Sun, Moon, Atom
 } from "lucide-react";
 import { useTheme } from "@/components/theme/ThemeProvider";
+
+const NAV_LINKS = [
+  { label: "Eksplorasi", href: "/simulasi", icon: <Globe className="w-3.5 h-3.5" /> },
+];
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [logoError, setLogoError] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -29,252 +27,255 @@ export default function Navbar() {
 
   useEffect(() => {
     setMounted(true);
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey && e.key === 'k') || e.key === '/') {
-        e.preventDefault();
-        setIsSearchOpen(true);
-      }
-      if (e.key === 'Escape') {
-        setIsSearchOpen(false);
-        setIsOpen(false);
-      }
+    const onScroll = () => setIsScrolled(window.scrollY > 24);
+    window.addEventListener("scroll", onScroll);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey && e.key === "k") || e.key === "/") { e.preventDefault(); setIsSearchOpen(true); }
+      if (e.key === "Escape") { setIsSearchOpen(false); setIsOpen(false); }
     };
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("keydown", onKey); };
   }, []);
 
   useEffect(() => {
-    if (isSearchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-    // Prevent body scroll when overlay is open
-    document.body.style.overflow = isSearchOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [isSearchOpen]);
+    if (isSearchOpen) searchInputRef.current?.focus();
+    document.body.style.overflow = isSearchOpen || isOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isSearchOpen, isOpen]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/simulasi?search=${encodeURIComponent(searchQuery)}`);
-      setIsSearchOpen(false);
-      setSearchQuery("");
-    }
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!searchQuery.trim()) return;
+    router.push(`/simulasi?search=${encodeURIComponent(searchQuery)}`);
+    setIsSearchOpen(false);
+    setSearchQuery("");
   };
 
+  const iconBtnCls = "flex items-center justify-center w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/[0.08] text-zinc-400 hover:text-white transition-all duration-200 shrink-0";
+
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${isScrolled ? 'py-3 md:py-4' : 'py-4 md:py-6'}`}>
-      <div className="container mx-auto px-3 sm:px-4 md:px-6">
-        <div className={`relative flex items-center justify-between px-4 sm:px-6 md:px-8 h-14 md:h-16 rounded-[18px] md:rounded-[24px] border border-white/10 backdrop-blur-2xl transition-all duration-500 ${isScrolled ? 'bg-zinc-950/80 shadow-2xl' : 'bg-white/5'}`}>
-          
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 md:gap-3 group shrink-0">
-            <div className="relative">
-              <div className="absolute inset-0 bg-indigo-500 blur-xl opacity-25 group-hover:opacity-45 transition-opacity" />
-              <div className="relative w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl shadow-lg group-hover:scale-105 transition-transform duration-500 flex items-center justify-center overflow-hidden bg-black/40 border border-white/10">
-                <img src="/logo.png" alt="Arshaka Edu Logo" className="w-full h-full object-contain p-1" />
+    <>
+      <nav
+        className={`fixed top-0 inset-x-0 z-[100] transition-all duration-500 ${
+          isScrolled ? "pt-3 pb-2" : "pt-5 pb-0"
+        }`}
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-5">
+          <div
+            className={`flex items-center justify-between h-14 px-4 sm:px-5 rounded-2xl border transition-all duration-500 ${
+              isScrolled
+                ? "bg-zinc-950/85 border-white/10 shadow-2xl shadow-black/40 backdrop-blur-2xl"
+                : "bg-white/[0.04] border-white/[0.07] backdrop-blur-xl"
+            }`}
+          >
+            {/* ── Logo ── */}
+            <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+              <div className="w-8 h-8 rounded-xl overflow-hidden border border-white/10 bg-black/40 flex items-center justify-center group-hover:scale-105 transition-transform duration-400 shrink-0">
+                {logoError ? (
+                  <Atom className="w-4 h-4 text-indigo-400" />
+                ) : (
+                  <img
+                    src="/logo.png"
+                    alt="Arshaka Edu"
+                    className="w-full h-full object-contain p-1"
+                    onError={() => setLogoError(true)}
+                  />
+                )}
               </div>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-black text-base md:text-xl tracking-tighter text-white leading-none">
-                ARSHAKA<span className="text-indigo-400">EDU</span>
-              </span>
-              <span className="hidden sm:block text-[7px] md:text-[8px] font-black uppercase tracking-[0.3em] text-zinc-500">Practice &amp; Learning</span>
-            </div>
-          </Link>
-
-          {/* Desktop Navigation — center */}
-          <div className="hidden lg:flex items-center gap-8">
-            <Link 
-              href="/simulasi" 
-              className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/5 shadow-inner text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-all flex items-center gap-2 group"
-            >
-              <Globe className="w-3 h-3 group-hover:rotate-12 transition-transform" /> 
-              Eksplorasi
-            </Link>
-          </div>
-
-          {/* Right Actions */}
-          <div className="flex items-center gap-2 md:gap-4">
-            {/* Search button — always visible */}
-            <button 
-              onClick={() => setIsSearchOpen(true)}
-              className="flex p-2 md:p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-zinc-400 hover:text-white group relative"
-              aria-label="Buka pencarian"
-            >
-               <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
-               <div className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity animate-pulse" />
-            </button>
-
-            {/* Theme Toggle Button */}
-            <button
-              onClick={toggleTheme}
-              className="flex p-2 md:p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-zinc-400 hover:text-white group"
-              aria-label="Ubah tema"
-            >
-              {!mounted ? (
-                <div className="w-4 h-4 shrink-0" />
-              ) : theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400 group-hover:rotate-45 transition-transform duration-500 shrink-0" />
-              ) : (
-                <Moon className="w-4 h-4 text-indigo-500 group-hover:-rotate-12 transition-transform duration-500 shrink-0" />
-              )}
-            </button>
-
-            {/* Dashboard — hidden on mobile */}
-            <Link href="/dashboard" className="hidden md:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 lg:px-5 py-2 md:py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-xl shadow-indigo-500/20">
-              <LayoutDashboard className="w-4 h-4" />
-              <span className="hidden lg:inline">Dashboard</span>
+              <div className="flex flex-col leading-none">
+                <span className="font-black text-[15px] tracking-tighter text-white">
+                  ARSHAKA<span className="text-indigo-400">EDU</span>
+                </span>
+                <span className="hidden sm:block text-[7px] font-black uppercase tracking-[0.28em] text-zinc-600 mt-0.5">
+                  Practice &amp; Learning
+                </span>
+              </div>
             </Link>
 
-            {/* Mobile Toggle */}
-            <button 
-              onClick={() => setIsOpen(!isOpen)}
-              className="lg:hidden p-2 md:p-2.5 bg-white/5 rounded-xl border border-white/5 text-zinc-400 hover:text-white transition-all"
-              aria-label="Toggle menu"
-            >
-              {isOpen ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <Menu className="w-5 h-5 md:w-6 md:h-6" />}
-            </button>
+            {/* ── Desktop Center Links ── */}
+            <div className="hidden lg:flex items-center gap-1">
+              {NAV_LINKS.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:bg-white/8 border border-transparent hover:border-white/8 transition-all duration-200"
+                >
+                  {l.icon}
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+
+            {/* ── Right Actions ── */}
+            <div className="flex items-center gap-2">
+              {/* Search */}
+              <button onClick={() => setIsSearchOpen(true)} className={iconBtnCls} aria-label="Cari">
+                <Search className="w-4 h-4" />
+              </button>
+
+              {/* Theme toggle */}
+              <button onClick={toggleTheme} className={iconBtnCls} aria-label="Ubah tema">
+                {!mounted ? (
+                  <div className="w-4 h-4" />
+                ) : theme === "dark" ? (
+                  <Sun className="w-4 h-4 text-amber-400" />
+                ) : (
+                  <Moon className="w-4 h-4 text-indigo-400" />
+                )}
+              </button>
+
+              {/* Dashboard — desktop */}
+              <Link
+                href="/dashboard"
+                className="hidden md:flex items-center gap-2 h-9 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-600/20"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden lg:inline">Dashboard</span>
+              </Link>
+
+              {/* Hamburger */}
+              <button
+                onClick={() => setIsOpen((v) => !v)}
+                className={`${iconBtnCls} lg:hidden`}
+                aria-label="Menu"
+              >
+                {isOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ── Global Search Overlay ── */}
+        {/* ── Mobile Menu ── */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="max-w-6xl mx-auto px-4 sm:px-5 pt-2 lg:hidden"
+            >
+              <div className="bg-zinc-950/95 backdrop-blur-3xl border border-white/10 rounded-2xl p-4 shadow-2xl space-y-2">
+                {NAV_LINKS.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 p-3.5 bg-white/5 hover:bg-white/8 rounded-xl border border-white/[0.06] transition-all group"
+                  >
+                    <span className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400 group-hover:scale-110 transition-transform">
+                      {l.icon}
+                    </span>
+                    <span className="font-black text-[11px] uppercase tracking-widest text-white">{l.label}</span>
+                  </Link>
+                ))}
+                <button
+                  onClick={() => { toggleTheme(); }}
+                  className="flex items-center gap-3 w-full p-3.5 bg-white/5 hover:bg-white/8 rounded-xl border border-white/[0.06] transition-all group"
+                >
+                  <span className="p-2 bg-white/5 rounded-lg text-zinc-400 group-hover:scale-110 transition-transform">
+                    {!mounted ? <div className="w-3.5 h-3.5" /> : theme === "dark"
+                      ? <Sun className="w-3.5 h-3.5 text-amber-400" />
+                      : <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                    }
+                  </span>
+                  <span className="font-black text-[11px] uppercase tracking-widest text-white">
+                    {!mounted ? "Ubah Tema" : `Mode ${theme === "dark" ? "Terang" : "Gelap"}`}
+                  </span>
+                </button>
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-center gap-2.5 w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-colors active:scale-95"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Akses Dashboard
+                </Link>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </nav>
+
+      {/* ── Search Overlay ── */}
       <AnimatePresence>
         {isSearchOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
             onClick={() => setIsSearchOpen(false)}
-            className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-xl flex items-start justify-center pt-16 sm:pt-20 md:pt-24 px-4"
+            className="fixed inset-0 z-[200] bg-black/75 backdrop-blur-xl flex items-start justify-center pt-20 sm:pt-28 px-4"
           >
-             <motion.div 
-               initial={{ opacity: 0, y: -20, scale: 0.95 }}
-               animate={{ opacity: 1, y: 0, scale: 1 }}
-               exit={{ opacity: 0, y: -20, scale: 0.95 }}
-               onClick={(e) => e.stopPropagation()}
-               className="w-full max-w-xl md:max-w-2xl bg-zinc-900 border border-white/10 rounded-[24px] md:rounded-[32px] shadow-2xl overflow-hidden"
-             >
-                <form onSubmit={handleSearch} className="p-5 md:p-8 space-y-4 md:space-y-6">
-                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">
-                         <Sparkles className="w-3 h-3" />
-                         Cari Laboratorium
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={() => setIsSearchOpen(false)}
-                        className="p-2 hover:bg-white/5 rounded-xl text-zinc-500 transition-colors"
-                        aria-label="Tutup pencarian"
-                      >
-                         <X className="w-5 h-5" />
-                      </button>
-                   </div>
-                   
-                   <div className="relative">
-                      <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 w-5 h-5 md:w-6 md:h-6 text-zinc-500" />
-                      <input 
-                        ref={searchInputRef}
-                        type="text" 
-                        placeholder="Cari simulasi..." 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl py-4 md:py-6 pl-12 md:pl-16 pr-4 md:pr-6 text-base md:text-lg font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-zinc-600"
-                      />
-                   </div>
-
-                   <div className="flex flex-wrap gap-2">
-                      <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mr-1 self-center">Populer:</span>
-                      {['Hukum Newton', 'Atom', 'Kalkulus', 'Sel', 'DNA'].map(tag => (
-                        <button 
-                          key={tag}
-                          type="button"
-                          onClick={() => setSearchQuery(tag)}
-                          className="px-3 md:px-4 py-1.5 bg-white/5 hover:bg-white/10 rounded-full text-[10px] font-bold text-zinc-400 border border-white/5 transition-all"
-                        >
-                           {tag}
-                        </button>
-                      ))}
-                   </div>
-                </form>
-
-                <div className="bg-black/20 px-5 md:px-6 py-4 border-t border-white/5 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                   <div className="hidden sm:flex gap-4">
-                      <span><kbd className="bg-white/5 px-2 py-1 rounded border border-white/10 mr-2 text-zinc-400 text-[8px]">ENTER</kbd> Cari</span>
-                      <span><kbd className="bg-white/5 px-2 py-1 rounded border border-white/10 mr-2 text-zinc-400 text-[8px]">ESC</kbd> Tutup</span>
-                   </div>
-                   <button 
-                     type="button"
-                     onClick={handleSearch as any}
-                     className="sm:hidden flex items-center gap-2 text-indigo-400 font-black"
-                   >
-                      Cari Sekarang <ArrowRight className="w-3 h-3" />
-                   </button>
-                   <div className="hidden sm:flex items-center gap-2 text-indigo-400">
-                      Cari di Arshaka Edu <ArrowRight className="w-3 h-3" />
-                   </div>
+            <motion.div
+              initial={{ opacity: 0, y: -16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -16, scale: 0.96 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-xl bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <form onSubmit={handleSearch} className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400">
+                    <Sparkles className="w-3 h-3" />
+                    Cari Laboratorium
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsSearchOpen(false)}
+                    className="p-1.5 hover:bg-white/5 rounded-lg text-zinc-500 hover:text-white transition-colors"
+                    aria-label="Tutup"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-             </motion.div>
+
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Cari simulasi, topik, atau mata pelajaran..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-11 pr-4 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all placeholder:text-zinc-600"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Populer:</span>
+                  {["Hukum Newton", "Atom", "Kalkulus", "Sel", "DNA"].map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setSearchQuery(tag)}
+                      className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-full text-[10px] font-bold text-zinc-400 border border-white/[0.06] transition-all"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </form>
+
+              <div className="bg-black/20 px-5 py-3 border-t border-white/[0.06] flex items-center justify-between">
+                <div className="hidden sm:flex gap-4 text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
+                  <span><kbd className="bg-white/5 px-1.5 py-0.5 rounded border border-white/10 text-zinc-500 text-[8px] mr-1">ENTER</kbd>Cari</span>
+                  <span><kbd className="bg-white/5 px-1.5 py-0.5 rounded border border-white/10 text-zinc-500 text-[8px] mr-1">ESC</kbd>Tutup</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSearch()}
+                  className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-white transition-colors"
+                >
+                  Cari Sekarang <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ── Mobile Menu ── */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="absolute top-full left-0 right-0 px-3 sm:px-4 md:px-6 pt-2 lg:hidden z-50"
-          >
-            <div className="bg-zinc-950/95 backdrop-blur-3xl border border-white/10 rounded-[24px] p-5 md:p-8 shadow-2xl space-y-4">
-              <Link 
-                href="/simulasi" 
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-4 p-4 md:p-6 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all group"
-              >
-                <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-400 group-hover:scale-110 transition-transform">
-                  <Globe className="w-5 h-5" />
-                </div>
-                <span className="font-black text-xs uppercase tracking-widest text-white">Eksplorasi Simulasi</span>
-              </Link>
-              <button 
-                onClick={toggleTheme}
-                className="flex items-center gap-4 w-full p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all text-left group"
-              >
-                <div className="p-2.5 bg-white/5 rounded-xl text-zinc-400 group-hover:scale-110 transition-transform">
-                  {!mounted ? (
-                    <div className="w-5 h-5 shrink-0" />
-                  ) : theme === 'dark' ? (
-                    <Sun className="w-5 h-5 text-amber-400 shrink-0" />
-                  ) : (
-                    <Moon className="w-5 h-5 text-indigo-400 shrink-0" />
-                  )}
-                </div>
-                <span className="font-black text-xs uppercase tracking-widest text-white">
-                  {!mounted ? 'Ubah Tema' : `Mode ${theme === 'dark' ? 'Terang' : 'Gelap'}`}
-                </span>
-              </button>
-              <Link 
-                href="/dashboard"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center justify-center gap-3 w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-colors"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Akses Dashboard
-              </Link>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </nav>
+    </>
   );
 }

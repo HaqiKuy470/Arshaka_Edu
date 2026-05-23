@@ -185,6 +185,81 @@ export async function updateProfile(formData: FormData) {
 
 // ─── Google Classroom Integration Actions ─────────────────────────────────────
 
+async function refreshGoogleAccessToken(account: { provider: string; providerAccountId: string; refresh_token: string | null }) {
+  if (!account.refresh_token) {
+    console.warn('[Google Token Refresh] No refresh token available');
+    return null;
+  }
+
+  try {
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        grant_type: 'refresh_token',
+        refresh_token: account.refresh_token,
+      }),
+      method: 'POST',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw data;
+    }
+
+    const newAccessToken = data.access_token;
+    const expiresAt = data.expires_in ? Math.floor(Date.now() / 1000) + data.expires_in : null;
+
+    // Update in database
+    await db.update(accounts)
+      .set({
+        access_token: newAccessToken,
+        expires_at: expiresAt,
+        refresh_token: data.refresh_token ?? account.refresh_token,
+      })
+      .where(and(
+        eq(accounts.provider, account.provider),
+        eq(accounts.providerAccountId, account.providerAccountId)
+      ));
+
+    console.log('[Google Token Refresh] Token refreshed successfully');
+    return newAccessToken;
+  } catch (error) {
+    console.error('[Google Token Refresh] Failed to refresh access token:', error);
+    return null;
+  }
+}
+
+async function getValidGoogleAccessToken(userId: string) {
+  const account = await db.query.accounts.findFirst({
+    where: and(
+      eq(accounts.userId, userId),
+      eq(accounts.provider, 'google')
+    )
+  });
+
+  if (!account || !account.access_token) {
+    return null;
+  }
+
+  // Check if expired or about to expire (within 5 minutes)
+  const isExpired = account.expires_at 
+    ? (account.expires_at * 1000 - 300000 < Date.now()) 
+    : false;
+
+  if (isExpired && account.refresh_token) {
+    console.log('[Google Classroom] Access token is expired/expiring soon, attempting refresh...');
+    const newAccessToken = await refreshGoogleAccessToken(account);
+    if (newAccessToken) {
+      return newAccessToken;
+    }
+  }
+
+  return account.access_token;
+}
+
 export async function checkGoogleConnection() {
   const session = await auth();
   if (!session?.user?.id) return { connected: false };
@@ -206,12 +281,7 @@ export async function fetchGoogleCourses() {
   const session = await auth();
   if (!session?.user?.id) throw new Error('Unauthorized');
 
-  const account = await db.query.accounts.findFirst({
-    where: and(
-      eq(accounts.userId, session.user.id),
-      eq(accounts.provider, 'google')
-    )
-  });
+  const accessToken = await getValidGoogleAccessToken(session.user.id);
 
   const mockCourses = [
     { id: 'google-101', name: 'Google Classroom: Fisika Kelas 10A', subject: 'Fisika', section: 'Tahun Ajaran 2026/2027' },
@@ -220,7 +290,7 @@ export async function fetchGoogleCourses() {
     { id: 'google-104', name: 'Google Classroom: Matematika Wajib', subject: 'Matematika', section: 'Kelas 12' }
   ];
 
-  if (!account || !account.access_token) {
+  if (!accessToken) {
     return {
       connected: false,
       courses: mockCourses,
@@ -232,27 +302,25 @@ export async function fetchGoogleCourses() {
   try {
     const res = await fetch('https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE', {
       headers: {
-        Authorization: `Bearer ${account.access_token}`
+        Authorization: `Bearer ${accessToken}`
       }
     });
 
     if (!res.ok) {
-      throw new Error('Gagal mengambil kelas dari Google Classroom.');
+      throw new Error(`Gagal mengambil kelas dari Google Classroom: ${res.statusText}`);
     }
 
     const data = await res.json();
-    if (data.courses && data.courses.length > 0) {
-      return {
-        connected: true,
-        courses: data.courses.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          subject: c.descriptionHeading || 'Fisika',
-          section: c.section || 'Google Classroom'
-        })),
-        simulated: false
-      };
-    }
+    return {
+      connected: true,
+      courses: (data.courses || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        subject: c.descriptionHeading || 'Fisika',
+        section: c.section || 'Google Classroom'
+      })),
+      simulated: false
+    };
   } catch (error) {
     console.warn('[Google Classroom API failed, falling back to simulation]', error);
   }
@@ -281,22 +349,17 @@ export async function importGoogleCourse(courseId: string, courseName: string, s
 
   const classroomId = newClass[0].id;
 
-  // 2. Cari Akun Google
-  const account = await db.query.accounts.findFirst({
-    where: and(
-      eq(accounts.userId, session.user.id),
-      eq(accounts.provider, 'google')
-    )
-  });
+  // 2. Dapatkan token akses Google yang valid
+  const accessToken = await getValidGoogleAccessToken(session.user.id);
 
   let studentsToEnroll: Array<{ name: string; email: string }> = [];
 
   // 3. Coba Tarik Siswa Riil dari Google Classroom API
-  if (account && account.access_token && !courseId.startsWith('google-')) {
+  if (accessToken && !courseId.startsWith('google-')) {
     try {
       const res = await fetch(`https://classroom.googleapis.com/v1/courses/${courseId}/students`, {
         headers: {
-          Authorization: `Bearer ${account.access_token}`
+          Authorization: `Bearer ${accessToken}`
         }
       });
       if (res.ok) {

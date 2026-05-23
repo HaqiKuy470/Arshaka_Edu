@@ -1,113 +1,167 @@
 import Link from 'next/link';
-import { ArrowLeft, Heart, Sparkles, ShieldCheck, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Heart, Sparkles, ShieldCheck, HelpCircle, Zap, Users, Server } from 'lucide-react';
 
 export const metadata = {
   title: 'Donasi | Arshaka Edu',
   description: 'Dukung Arshaka Edu untuk menyediakan media simulasi pendidikan gratis selamanya bagi jutaan anak bangsa.',
 };
 
+const STEPS = [
+  { n: 1, text: "Buka aplikasi dompet digital (GoPay, OVO, Dana, LinkAja) atau Mobile Banking (BCA Mobile, Livin, dll)." },
+  { n: 2, text: "Pilih opsi Scan / QRIS Pay pada aplikasi keuanganmu." },
+  { n: 3, text: "Arahkan kamera ke QR Code di atas atau unggah screenshot QRIS ini dari galeri." },
+  { n: 4, text: "Masukkan nominal dukungan yang ingin kamu dedikasikan, lalu selesaikan transaksi." },
+];
+
+const ALLOCATIONS = [
+  { icon: <Server className="w-4 h-4" />, label: "Infrastruktur Server", pct: "60%" },
+  { icon: <Zap className="w-4 h-4" />, label: "Modul Simulasi Baru", pct: "30%" },
+  { icon: <Users className="w-4 h-4" />, label: "Operasional & Domain", pct: "10%" },
+];
+
 export default function DonasiPage() {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center relative py-20 px-4 md:py-32">
-      {/* Background blobs */}
-      <div className="absolute top-[10%] left-[10%] w-[35%] h-[35%] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none" />
-      <div className="absolute bottom-[10%] right-[10%] w-[35%] h-[35%] rounded-full bg-purple-600/10 blur-[130px] pointer-events-none" />
+    <div className="min-h-screen bg-[#060608] text-white flex flex-col">
+      <div className="relative flex-1 flex flex-col items-center px-5 sm:px-6 pt-28 sm:pt-32 pb-20">
 
-      <div className="w-full max-w-4xl z-10">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-zinc-400 hover:text-white transition-colors mb-8 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span className="font-bold text-xs uppercase tracking-widest">Kembali ke Beranda</span>
-        </Link>
-
-        {/* Hero Header */}
-        <div className="text-center mb-12 md:mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 rounded-full border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-6">
-            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 animate-pulse" />
-            Dukung Pendidikan Gratis Selamanya
-          </div>
-          <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
-            Investasi untuk <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Masa Depan</span> Sains Indonesia
-          </h1>
-          <p className="text-zinc-400 text-sm md:text-base max-w-xl mx-auto leading-relaxed font-medium">
-            Arshaka Edu adalah platform nirlaba terbuka. Dukungan Anda membantu kami membiayai server database, dan mengembangkan simulasi sains baru untuk jutaan murid & guru secara gratis.
-          </p>
+        {/* Ambient auras */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-indigo-700/8 blur-[150px] rounded-full" />
+          <div className="absolute bottom-1/4 -right-32 w-[500px] h-[500px] bg-purple-700/8 blur-[150px] rounded-full" />
         </div>
 
-        {/* Main Split Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start">
-          
-          {/* QRIS Card */}
-          <div className="glass-card rounded-[32px] p-6 md:p-8 border border-white/10 shadow-2xl relative group overflow-hidden flex flex-col items-center">
-            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-purple-500/5 pointer-events-none" />
-            
-            {/* Glossy Border Aura */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full opacity-50" />
+        <div className="relative z-10 w-full max-w-4xl">
 
-            <span className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400 mb-6 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-yellow-500" />
-              Pindai / Scan QRIS
+          {/* Back link */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors mb-10 group"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="font-bold text-[10px] uppercase tracking-widest">Kembali ke Beranda</span>
+          </Link>
+
+          {/* ── Hero ── */}
+          <div className="text-center mb-12 sm:mb-16 space-y-4">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-rose-500/10 rounded-full border border-rose-500/20 text-rose-400 text-[10px] font-black uppercase tracking-[0.18em]">
+              <Heart className="w-3 h-3 fill-rose-500 animate-pulse" />
+              Dukung Pendidikan Gratis Selamanya
             </span>
 
-            {/* QR Code Container */}
-            <div className="relative bg-white p-4 rounded-3xl shadow-2xl max-w-[280px] w-full aspect-square flex items-center justify-center border border-zinc-200">
-              <img 
-                src="/qris.jpeg" 
-                alt="Arshaka Edu QRIS Donation" 
-                className="w-full h-full object-contain rounded-2xl"
-              />
-            </div>
+            <h1 className="text-[clamp(1.8rem,6vw,3.5rem)] font-black tracking-tighter leading-[1.05] text-white">
+              Investasi untuk{" "}
+              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                Masa Depan
+              </span>{" "}
+              Sains Indonesia
+            </h1>
 
-            <div className="text-center mt-6 space-y-2">
-              <p className="font-black text-sm text-zinc-300">ARSHAKA EDU SUPPORT</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">GPN • QRIS • Seluruh Dompet Digital</p>
-            </div>
+            <p className="text-zinc-500 text-sm sm:text-base max-w-lg mx-auto leading-relaxed font-medium">
+              Arshaka Edu adalah platform nirlaba terbuka. Dukungan Anda membantu membiayai server, dan mengembangkan simulasi sains baru untuk jutaan murid dan guru secara gratis.
+            </p>
           </div>
 
-          {/* Guide Card */}
-          <div className="space-y-6 md:space-y-8">
-            <div className="glass-card rounded-[28px] p-6 border border-white/5 space-y-6">
-              <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-3">
-                <HelpCircle className="w-5 h-5 text-indigo-400" />
-                Cara Berdonasi
-              </h3>
+          {/* ── Main Content ── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-start">
 
-              <ol className="space-y-4 text-sm font-medium text-zinc-400">
-                <li className="flex gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-black shrink-0">1</span>
-                  <span>Buka aplikasi dompet digital pilihanmu (GoPay, OVO, Dana, LinkAja) atau Mobile Banking (BCA Mobile, Livin, dll).</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-black shrink-0">2</span>
-                  <span>Pilih opsi **Scan / QRIS Pay** pada aplikasi keuanganmu.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-black shrink-0">3</span>
-                  <span>Arahkan kamera ke **QR Code** di samping atau unggah screenshot QRIS ini.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-black shrink-0">4</span>
-                  <span>Masukkan jumlah dukungan nominal yang ingin kamu dedikasikan, lalu selesaikan transaksi.</span>
-                </li>
-              </ol>
+            {/* QRIS Card */}
+            <div className="relative flex flex-col items-center bg-zinc-900/50 rounded-2xl sm:rounded-[28px] border border-white/[0.08] p-6 sm:p-8 overflow-hidden">
+              {/* Top accent line */}
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+
+              <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-6">
+                <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                Pindai / Scan QRIS
+              </span>
+
+              {/* QR container */}
+              <div className="relative w-full max-w-[260px] aspect-square bg-white rounded-2xl p-3.5 shadow-2xl border border-zinc-200/50">
+                <img
+                  src="/qris.jpeg"
+                  alt="Arshaka Edu QRIS Donation"
+                  className="w-full h-full object-contain rounded-xl"
+                />
+              </div>
+
+              <div className="text-center mt-6 space-y-1.5">
+                <p className="font-black text-sm text-zinc-200 tracking-tight">ARSHAKA EDU SUPPORT</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600">GPN • QRIS • Semua Dompet Digital</p>
+              </div>
+
+              {/* Wallet logos hint */}
+              <div className="flex gap-2 mt-4 flex-wrap justify-center">
+                {["GoPay", "OVO", "Dana", "LinkAja", "BCA"].map((w) => (
+                  <span
+                    key={w}
+                    className="px-2.5 py-1 bg-white/5 rounded-lg border border-white/[0.06] text-[9px] font-black uppercase tracking-widest text-zinc-600"
+                  >
+                    {w}
+                  </span>
+                ))}
+              </div>
             </div>
 
-            {/* Transparency Trust Badge */}
-            <div className="glass-card rounded-[24px] p-5 border border-white/5 flex gap-4 items-start">
-              <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400 shrink-0">
-                <ShieldCheck className="w-5 h-5" />
+            {/* Right column */}
+            <div className="space-y-4 sm:space-y-5">
+
+              {/* How to donate */}
+              <div className="bg-zinc-900/50 rounded-2xl border border-white/[0.08] p-5 sm:p-6 space-y-5">
+                <h3 className="flex items-center gap-2.5 text-xs font-black text-white uppercase tracking-wider">
+                  <HelpCircle className="w-4 h-4 text-indigo-400 shrink-0" />
+                  Cara Berdonasi
+                </h3>
+
+                <ol className="space-y-4">
+                  {STEPS.map((s) => (
+                    <li key={s.n} className="flex gap-3 items-start">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 text-[10px] font-black shrink-0 mt-0.5">
+                        {s.n}
+                      </span>
+                      <span className="text-xs sm:text-sm text-zinc-400 font-medium leading-relaxed">{s.text}</span>
+                    </li>
+                  ))}
+                </ol>
               </div>
-              <div>
-                <h4 className="text-xs font-black text-white uppercase tracking-wider mb-1">Keamanan &amp; Transparansi</h4>
-                <p className="text-[11px] text-zinc-400 leading-relaxed font-medium">
-                  100% donasi dialokasikan langsung untuk biaya infrastruktur database server, pemeliharaan domain, dan penelitian modul interaktif sains gratis untuk semua jenjang sekolah.
+
+              {/* Transparency */}
+              <div className="bg-zinc-900/50 rounded-2xl border border-white/[0.08] p-5 sm:p-6 space-y-4">
+                <h4 className="flex items-center gap-2.5 text-xs font-black text-white uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  Transparansi Penggunaan Dana
+                </h4>
+
+                <div className="space-y-3">
+                  {ALLOCATIONS.map((a) => (
+                    <div key={a.label} className="flex items-center gap-3">
+                      <span className="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-400 shrink-0">{a.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[11px] font-bold text-zinc-300">{a.label}</span>
+                          <span className="text-[11px] font-black text-emerald-400">{a.pct}</span>
+                        </div>
+                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+                            style={{ width: a.pct }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-[11px] text-zinc-600 leading-relaxed font-medium pt-1 border-t border-white/[0.05]">
+                  100% donasi dialokasikan langsung untuk infrastruktur, pemeliharaan domain, dan riset modul interaktif gratis untuk semua jenjang.
                 </p>
               </div>
+
             </div>
           </div>
 
+          {/* Bottom thank-you note */}
+          <p className="text-center text-zinc-600 text-xs font-medium mt-10 sm:mt-14 flex items-center justify-center gap-1.5">
+            Dibuat dengan <Heart className="w-3 h-3 text-rose-500 fill-rose-500" /> untuk generasi pelajar Indonesia
+          </p>
         </div>
       </div>
     </div>

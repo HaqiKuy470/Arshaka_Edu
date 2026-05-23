@@ -2,17 +2,11 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { 
-  Search, 
-  Play, 
-  Filter, 
-  Monitor, 
-  Activity, 
-  Layers, 
-  MousePointer2,
-  ChevronRight
+import {
+  Search, Play, Filter, Monitor, Activity,
+  Layers, MousePointer2, ChevronRight, X
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 
 // --- Data ---
 const SIMULATIONS = [
@@ -70,7 +64,6 @@ const SIMULATIONS = [
   { id: "termodinamika", title: "Termodinamika Gas", cat: "Fisika", color: "from-red-500 to-orange-400" },
   { id: "rangkaian-listrik", title: "Rangkaian Listrik", cat: "Fisika", color: "from-cyan-500 to-sky-400" },
   { id: "medan-magnet", title: "Medan Magnet", cat: "Fisika", color: "from-indigo-500 to-blue-400" },
-
   // Kimia
   { id: "penyeimbangan-persamaan", title: "Penyeimbangan Persamaan", cat: "Kimia", color: "from-emerald-500 to-teal-400" },
   { id: "tabel-periodik", title: "Tabel Periodik Interaktif", cat: "Kimia", color: "from-orange-500 to-amber-400" },
@@ -92,7 +85,6 @@ const SIMULATIONS = [
   { id: "koloid-suspensi", title: "Koloid & Suspensi", cat: "Kimia", color: "from-yellow-600 to-amber-500" },
   { id: "gugus-fungsi", title: "Gugus Fungsi Organik", cat: "Kimia", color: "from-purple-500 to-pink-400" },
   { id: "polimer", title: "Reaksi Polimerisasi", cat: "Kimia", color: "from-emerald-600 to-teal-400" },
-
   // Matematika
   { id: "pecahan-desimal", title: "Pecahan & Desimal", cat: "Matematika", color: "from-sky-500 to-blue-400" },
   { id: "garis-bilangan", title: "Garis Bilangan (Bulat)", cat: "Matematika", color: "from-emerald-500 to-teal-400" },
@@ -119,7 +111,6 @@ const SIMULATIONS = [
   { id: "vektor-visual", title: "Vektor 2D", cat: "Matematika", color: "from-teal-500 to-emerald-400" },
   { id: "bilangan-kompleks", title: "Bilangan Kompleks", cat: "Matematika", color: "from-purple-500 to-fuchsia-400" },
   { id: "barisan-deret", title: "Barisan & Deret", cat: "Matematika", color: "from-rose-600 to-red-400" },
-
   // Biologi
   { id: "sel-organel", title: "Anatomi Sel & Organel", cat: "Biologi", color: "from-emerald-600 to-green-400" },
   { id: "fotosintesis", title: "Proses Fotosintesis", cat: "Biologi", color: "from-lime-500 to-green-400" },
@@ -143,8 +134,7 @@ const SIMULATIONS = [
   { id: "sistem-ekskresi", title: "Sistem Ekskresi (Ginjal)", cat: "Biologi", color: "from-rose-500 to-red-400" },
   { id: "siklus-biogeokimia", title: "Siklus Biogeokimia", cat: "Biologi", color: "from-blue-500 to-cyan-400" },
   { id: "dinamika-populasi", title: "Dinamika Populasi", cat: "Biologi", color: "from-teal-600 to-emerald-400" },
-
-  // Ilmu Bumi & Geografi
+  // Ilmu Bumi
   { id: "struktur-bumi", title: "Struktur Lapisan Bumi", cat: "Ilmu Bumi", color: "from-orange-700 to-amber-600" },
   { id: "tektonik-lempeng", title: "Tektonik Lempeng", cat: "Ilmu Bumi", color: "from-zinc-600 to-slate-400" },
   { id: "gunung-berapi", title: "Gunung Berapi & Erupsi", cat: "Ilmu Bumi", color: "from-red-600 to-orange-500" },
@@ -155,8 +145,7 @@ const SIMULATIONS = [
   { id: "cuaca-iklim", title: "Cuaca & Iklim", cat: "Ilmu Bumi", color: "from-yellow-500 to-orange-400" },
   { id: "arus-laut", title: "Arus Laut Global", cat: "Ilmu Bumi", color: "from-indigo-600 to-blue-500" },
   { id: "zona-waktu", title: "Zona Waktu Dunia", cat: "Ilmu Bumi", color: "from-slate-700 to-zinc-500" },
-
-  // Bahasa & Linguistik
+  // Bahasa
   { id: "struktur-kalimat", title: "Struktur Kalimat (SPOK)", cat: "Bahasa", color: "from-emerald-600 to-green-400" },
   { id: "jenis-kata", title: "Jenis-Jenis Kata", cat: "Bahasa", color: "from-blue-600 to-indigo-500" },
   { id: "majas-gaya-bahasa", title: "Majas & Gaya Bahasa", cat: "Bahasa", color: "from-purple-600 to-fuchsia-400" },
@@ -167,8 +156,7 @@ const SIMULATIONS = [
   { id: "teks-genre", title: "Analisis Genre Teks", cat: "Bahasa", color: "from-cyan-600 to-sky-400" },
   { id: "peta-kata", title: "Relasi Makna Kata", cat: "Bahasa", color: "from-teal-500 to-emerald-400" },
   { id: "morfologi", title: "Morfologi", cat: "Bahasa", color: "from-orange-500 to-yellow-400" },
-
-  // Ekonomi & Akuntansi
+  // Ekonomi
   { id: "penawaran-permintaan", title: "Supply & Demand", cat: "Ekonomi", color: "from-blue-600 to-sky-400" },
   { id: "inflasi-deflasi", title: "Inflasi & Deflasi", cat: "Ekonomi", color: "from-red-600 to-rose-400" },
   { id: "persamaan-akuntansi", title: "Persamaan Akuntansi", cat: "Ekonomi", color: "from-emerald-600 to-teal-400" },
@@ -179,8 +167,7 @@ const SIMULATIONS = [
   { id: "siklus-akuntansi", title: "Siklus Akuntansi", cat: "Ekonomi", color: "from-cyan-600 to-sky-400" },
   { id: "pajak-dasar", title: "Dasar Perpajakan", cat: "Ekonomi", color: "from-teal-500 to-emerald-400" },
   { id: "nilai-waktu-uang", title: "Nilai Waktu Uang", cat: "Ekonomi", color: "from-yellow-600 to-orange-500" },
-
-  // Sejarah & IPS
+  // Sejarah
   { id: "sejarah-indonesia", title: "Linimasa Sejarah NKRI", cat: "Sejarah", color: "from-red-600 to-rose-400" },
   { id: "kerajaan-nusantara", title: "Peta Kerajaan Nusantara", cat: "Sejarah", color: "from-amber-700 to-orange-600" },
   { id: "perjuangan-kemerdekaan", title: "Perjuangan 1945", cat: "Sejarah", color: "from-rose-600 to-red-400" },
@@ -191,8 +178,7 @@ const SIMULATIONS = [
   { id: "lembaga-negara", title: "Lembaga Negara", cat: "Sejarah", color: "from-emerald-600 to-teal-400" },
   { id: "interaksi-sosial", title: "Interaksi Sosial", cat: "Sejarah", color: "from-purple-600 to-fuchsia-400" },
   { id: "mobilitas-sosial", title: "Mobilitas Sosial", cat: "Sejarah", color: "from-cyan-600 to-sky-400" },
-
-  // Teknologi & Informatika
+  // Teknologi
   { id: "algoritma-flowchart", title: "Algoritma & Flowchart", cat: "Teknologi", color: "from-emerald-600 to-teal-400" },
   { id: "sorting-visual", title: "Sorting Visualizer", cat: "Teknologi", color: "from-rose-600 to-pink-500" },
   { id: "searching-visual", title: "Searching Visualizer", cat: "Teknologi", color: "from-blue-600 to-indigo-500" },
@@ -208,8 +194,7 @@ const SIMULATIONS = [
   { id: "arsitektur-cpu", title: "Arsitektur CPU", cat: "Teknologi", color: "from-zinc-700 to-slate-500" },
   { id: "machine-learning", title: "Neural Network (AI)", cat: "Teknologi", color: "from-blue-800 to-indigo-600" },
   { id: "visualisasi-data", title: "Visualisasi Data", cat: "Teknologi", color: "from-emerald-600 to-teal-400" },
-
-  // Seni & Budaya
+  // Seni
   { id: "teori-warna", title: "Teori Warna", cat: "Seni", color: "from-fuchsia-600 to-purple-400" },
   { id: "perspektif-seni", title: "Perspektif Seni Rupa", cat: "Seni", color: "from-orange-600 to-amber-500" },
   { id: "komposisi-desain", title: "Komposisi Desain", cat: "Seni", color: "from-rose-600 to-pink-500" },
@@ -220,7 +205,6 @@ const SIMULATIONS = [
   { id: "gelombang-timbre", title: "Warna Suara (Timbre)", cat: "Seni", color: "from-amber-500 to-orange-400" },
   { id: "alat-musik-tradisional", title: "Alat Musik Nusantara", cat: "Seni", color: "from-yellow-700 to-amber-600" },
   { id: "budaya-tari-wayang", title: "Peta Budaya Indonesia", cat: "Seni", color: "from-red-700 to-orange-600" },
-
   // Astronomi
   { id: "tata-surya", title: "Tata Surya 3D", cat: "Astronomi", color: "from-yellow-500 to-orange-400" },
   { id: "fase-bulan", title: "Siklus Fase Bulan", cat: "Astronomi", color: "from-zinc-600 to-slate-400" },
@@ -232,8 +216,7 @@ const SIMULATIONS = [
   { id: "asteroid-meteor", title: "Asteroid & Meteor", cat: "Astronomi", color: "from-amber-600 to-orange-500" },
   { id: "teleskop-spektrum", title: "Spektrum Cahaya", cat: "Astronomi", color: "from-purple-800 to-indigo-600" },
   { id: "zona-layak-huni", title: "Zona Layak Huni", cat: "Astronomi", color: "from-emerald-500 to-teal-400" },
-  
-  // Psikologi & Kesehatan
+  // Kesehatan
   { id: "ilusi-optik", title: "Persepsi & Ilusi Optik", cat: "Kesehatan", color: "from-indigo-600 to-blue-500" },
   { id: "memori-belajar", title: "Memori & Belajar", cat: "Kesehatan", color: "from-blue-700 to-indigo-500" },
   { id: "emosi-mental", title: "Kesehatan Mental", cat: "Kesehatan", color: "from-rose-700 to-pink-500" },
@@ -243,12 +226,21 @@ const SIMULATIONS = [
 
 const CATEGORIES = ["Semua", "Fisika", "Kimia", "Matematika", "Biologi", "Ilmu Bumi", "Astronomi", "Teknologi", "Seni", "Bahasa", "Ekonomi", "Sejarah", "Kesehatan"];
 
+const containerVariants: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.04 } },
+};
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 12, scale: 0.97 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.3, ease: "easeOut" } },
+};
+
 export default function SimulationsPage() {
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredSimulations = useMemo(() => {
-    return SIMULATIONS.filter(sim => {
+    return SIMULATIONS.filter((sim) => {
       const matchesCat = activeCategory === "Semua" || sim.cat === activeCategory;
       const matchesSearch = sim.title.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCat && matchesSearch;
@@ -256,166 +248,201 @@ export default function SimulationsPage() {
   }, [activeCategory, searchQuery]);
 
   return (
-    <div className="flex-1 bg-[#050505] relative overflow-hidden">
-      
-      {/* Background Decor */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-indigo-600/5 blur-[120px] rounded-full" />
-        <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-purple-600/5 blur-[120px] rounded-full" />
+    <div className="flex-1 min-h-screen bg-[#060608] relative overflow-x-hidden">
+
+      {/* Ambient background */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-indigo-600/5 blur-[130px] rounded-full" />
+        <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-purple-600/5 blur-[130px] rounded-full" />
       </div>
 
-      <div className="container mx-auto px-6 pt-40 pb-24 relative z-10">
-        
-        {/* --- Header Section --- */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-12 mb-20">
-          <div className="space-y-6 max-w-3xl">
-             <motion.div 
-               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-               className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-black uppercase tracking-widest text-indigo-400"
-             >
-                <Monitor className="w-3 h-3" />
-                Laboratorium Virtual Aktif
-             </motion.div>
-             <motion.h1 
-               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-               className="text-5xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none"
-             >
-               KATALOG <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">SIMULASI</span>
-             </motion.h1>
-             <motion.p 
-               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-               className="text-zinc-500 text-lg font-medium leading-relaxed"
-             >
-               Rendering {SIMULATIONS.length} modul interaktif. Pilih laboratorium virtual yang ingin Anda jalankan.
-             </motion.p>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-5 sm:px-6 pt-28 sm:pt-32 pb-20">
+
+        {/* ── Header ── */}
+        <div className="flex flex-col gap-6 sm:gap-8 mb-8 sm:mb-10">
+          {/* Badge + title */}
+          <div className="space-y-3 sm:space-y-4">
+            <motion.div
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-black uppercase tracking-[0.18em] text-indigo-400"
+            >
+              <Monitor className="w-3 h-3" />
+              Laboratorium Virtual Aktif
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-[clamp(2rem,7vw,4rem)] font-black tracking-tighter text-white uppercase leading-none"
+            >
+              KATALOG{" "}
+              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                SIMULASI
+              </span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 }}
+              className="text-zinc-500 text-sm sm:text-base font-medium max-w-xl"
+            >
+              {SIMULATIONS.length} modul interaktif siap dijalankan. Pilih laboratorium virtual yang ingin kamu eksplorasi.
+            </motion.p>
           </div>
 
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            className="relative w-full lg:w-96"
+          {/* Search */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="relative w-full sm:max-w-sm"
           >
-            <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-zinc-500">
-               <Search className="w-5 h-5" />
-            </div>
-            <input 
-              type="text" 
-              placeholder="Cari Laboratorium..." 
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Cari simulasi..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 pl-14 pr-6 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all placeholder:text-zinc-600 backdrop-blur-xl"
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-10 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all placeholder:text-zinc-600"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-white transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </motion.div>
         </div>
 
-        {/* --- Category Tabs --- */}
-        <div className="flex items-center gap-4 mb-12 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6">
-           <div className="flex items-center gap-3 text-zinc-500 mr-2">
-              <Filter className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Filter Topik</span>
-           </div>
-           {CATEGORIES.map((cat, idx) => (
-             <button 
-               key={cat}
-               onClick={() => setActiveCategory(cat)}
-               className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border
-                 ${activeCategory === cat 
-                   ? 'bg-indigo-600 text-white border-indigo-400 shadow-xl shadow-indigo-600/20' 
-                   : 'bg-white/5 text-zinc-500 border-white/5 hover:bg-white/10 hover:text-zinc-300'
-                 }
-               `}
-             >
-               {cat}
-             </button>
-           ))}
+        {/* ── Category Tabs ── */}
+        <div className="flex items-center gap-2 mb-8 sm:mb-10 overflow-x-auto pb-2 -mx-4 px-4 sm:-mx-0 sm:px-0 no-scrollbar">
+          <div className="flex items-center gap-1.5 text-zinc-600 mr-1 shrink-0">
+            <Filter className="w-3.5 h-3.5" />
+            <span className="text-[9px] font-black uppercase tracking-widest hidden sm:block">Filter</span>
+          </div>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border shrink-0 ${
+                activeCategory === cat
+                  ? "bg-indigo-600 text-white border-indigo-500/50 shadow-lg shadow-indigo-600/20"
+                  : "bg-white/5 text-zinc-500 border-white/[0.06] hover:bg-white/10 hover:text-zinc-300"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
 
-        {/* --- Simulations Grid --- */}
-        <AnimatePresence mode="popLayout">
-           <motion.div 
-             layout
-             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
-           >
-             {filteredSimulations.map((sim, idx) => (
-               <motion.div
-                 layout
-                 key={sim.id}
-                 initial={{ opacity: 0, scale: 0.9 }}
-                 animate={{ opacity: 1, scale: 1 }}
-                 exit={{ opacity: 0, scale: 0.9 }}
-                 transition={{ duration: 0.3, delay: idx * 0.005 }}
-               >
-                 <Link href={`/simulasi/${sim.id}`} className="group relative block h-[340px] rounded-[40px] bg-zinc-900/40 border border-white/5 hover:border-indigo-500/30 transition-all duration-500 overflow-hidden shadow-2xl">
-                    
-                    {/* Card Body */}
-                    <div className="h-full flex flex-col justify-between p-8">
-                       
-                       {/* Top Part: Icon & Category */}
-                       <div className="space-y-4">
-                          <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${sim.color} flex items-center justify-center text-white shadow-2xl group-hover:scale-110 transition-transform duration-500`}>
-                             <Play className="w-6 h-6 fill-current ml-1" />
-                          </div>
-                          <div>
-                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400/80 mb-2 block">{sim.cat}</span>
-                             <h3 className="text-xl font-black text-white leading-tight uppercase tracking-tight group-hover:text-indigo-300 transition-colors">{sim.title}</h3>
-                          </div>
-                       </div>
+        {/* ── Count indicator ── */}
+        <div className="flex items-center justify-between mb-5 sm:mb-6">
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600">
+            {filteredSimulations.length} Simulasi
+            {activeCategory !== "Semua" && ` · ${activeCategory}`}
+            {searchQuery && ` · "${searchQuery}"`}
+          </span>
+          {(activeCategory !== "Semua" || searchQuery) && (
+            <button
+              onClick={() => { setActiveCategory("Semua"); setSearchQuery(""); }}
+              className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+            >
+              <X className="w-3 h-3" /> Reset
+            </button>
+          )}
+        </div>
 
-                       {/* Bottom Part: Action */}
-                       <div className="flex items-center justify-between pt-6 border-t border-white/5">
-                          <div className="flex items-center gap-2">
-                             <Activity className="w-3 h-3 text-emerald-500" />
-                             <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest italic">Simulation Ready</span>
-                          </div>
-                          <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-indigo-600 transition-all duration-500">
-                             <ChevronRight className="w-5 h-5 text-white" />
-                          </div>
-                       </div>
+        {/* ── Grid ── */}
+        <AnimatePresence mode="popLayout">
+          {filteredSimulations.length > 0 ? (
+            <motion.div
+              key="grid"
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4"
+            >
+              {filteredSimulations.map((sim) => (
+                <motion.div key={sim.id} variants={cardVariants} layout>
+                  <Link
+                    href={`/simulasi/${sim.id}`}
+                    className="group relative flex flex-col justify-between h-[220px] sm:h-[260px] rounded-2xl sm:rounded-[28px] bg-zinc-900/50 border border-white/[0.07] hover:border-indigo-500/30 transition-all duration-400 overflow-hidden shadow-xl p-5 sm:p-6"
+                  >
+                    {/* Hover gradient glow */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${sim.color} opacity-0 group-hover:opacity-[0.04] transition-opacity duration-500 pointer-events-none`} />
+
+                    {/* Top */}
+                    <div className="space-y-3 relative z-10">
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br ${sim.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-400 shrink-0`}>
+                        <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black uppercase tracking-[0.18em] text-indigo-400/80 mb-1 block">{sim.cat}</span>
+                        <h3 className="text-sm sm:text-base font-black text-white leading-tight uppercase tracking-tight group-hover:text-indigo-200 transition-colors line-clamp-2">
+                          {sim.title}
+                        </h3>
+                      </div>
                     </div>
 
-                    {/* Hover Overlay Background */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${sim.color} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500`} />
-                    <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                 </Link>
-               </motion.div>
-             ))}
-           </motion.div>
+                    {/* Bottom */}
+                    <div className="relative z-10 flex items-center justify-between pt-3 border-t border-white/[0.06]">
+                      <div className="flex items-center gap-1.5">
+                        <Activity className="w-2.5 h-2.5 text-emerald-500" />
+                        <span className="text-[8px] sm:text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Siap</span>
+                      </div>
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-indigo-600 transition-all duration-400">
+                        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="py-32 sm:py-40 flex flex-col items-center text-center gap-4"
+            >
+              <div className="w-16 h-16 bg-white/[0.04] rounded-full flex items-center justify-center border border-white/[0.07]">
+                <Search className="w-6 h-6 text-zinc-700" />
+              </div>
+              <h3 className="text-xl font-black text-white uppercase tracking-tight">Tidak Ditemukan</h3>
+              <p className="text-zinc-500 text-sm max-w-xs font-medium">
+                Tidak ada simulasi untuk "{searchQuery || activeCategory}". Coba kata kunci atau kategori lain.
+              </p>
+              <button
+                onClick={() => { setActiveCategory("Semua"); setSearchQuery(""); }}
+                className="mt-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors"
+              >
+                Reset Filter
+              </button>
+            </motion.div>
+          )}
         </AnimatePresence>
 
-        {/* --- Empty State --- */}
-        {filteredSimulations.length === 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="py-40 text-center space-y-4"
-          >
-             <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10">
-                <Search className="w-8 h-8 text-zinc-700" />
-             </div>
-             <h3 className="text-2xl font-black text-white uppercase tracking-tight">Tidak Ada Laboratorium</h3>
-             <p className="text-zinc-500 max-w-sm mx-auto font-medium">Pencarian "{searchQuery}" tidak membuahkan hasil. Coba kata kunci lain atau kategori yang berbeda.</p>
-          </motion.div>
+        {/* ── Footer hint ── */}
+        {filteredSimulations.length > 0 && (
+          <div className="mt-12 sm:mt-16 pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-zinc-600">
+              <Layers className="w-4 h-4 text-indigo-400/60" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">
+                {SIMULATIONS.length} Modul Interaktif
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5 px-4 py-2.5 bg-white/[0.03] rounded-xl border border-white/[0.06] text-zinc-500">
+              <MousePointer2 className="w-3.5 h-3.5 text-indigo-400/60 animate-bounce" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Klik kartu untuk membuka Lab Virtual</span>
+            </div>
+          </div>
         )}
-
       </div>
-
-      {/* --- Footer Hint --- */}
-      <div className="container mx-auto px-6 pb-20 border-t border-white/5 pt-20">
-         <div className="flex flex-col md:flex-row items-center justify-between gap-12">
-            <div className="flex items-center gap-6">
-               <div className="flex flex-col">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-2">Platform Power</span>
-                  <div className="flex items-center gap-4">
-                     <Layers className="w-5 h-5 text-indigo-400" />
-                     <span className="text-sm font-bold text-zinc-400">Rendering {SIMULATIONS.length} Modul Interaktif</span>
-                  </div>
-               </div>
-            </div>
-            <div className="flex items-center gap-4 px-6 py-3 bg-white/5 rounded-full border border-white/5 text-zinc-500">
-               <MousePointer2 className="w-4 h-4 animate-bounce text-indigo-500" />
-               <span className="text-[9px] font-black uppercase tracking-widest">Klik kartu simulasi untuk membuka Laboratorium Virtual</span>
-            </div>
-         </div>
-      </div>
-
     </div>
   );
 }
