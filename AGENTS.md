@@ -19,10 +19,6 @@
 - Mendukung **Bahasa Indonesia** sebagai bahasa utama
 
 ---
-
-## 📚 Daftar Mata Pelajaran & Simulasi
-
-
 ## 📚 Daftar Mata Pelajaran & Simulasi
 
 ### 🔬 1. Fisika

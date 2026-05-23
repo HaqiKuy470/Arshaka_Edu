@@ -162,15 +162,13 @@ export default function Footer() {
         <div className="pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-zinc-600">
             <span>© {year} Arshaka Edu</span>
-            <span className="w-1 h-1 rounded-full bg-zinc-800" />
-            <span>Karya Bangsa</span>
           </div>
 
           <div className="flex items-center gap-4 sm:gap-5">
-            <span className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
-              Made with <Heart className="w-2.5 h-2.5 text-rose-500 animate-pulse" /> for Education
-            </span>
             <div className="flex gap-3">
+              <Link href="/cookies" className="text-[9px] font-bold uppercase tracking-widest text-zinc-600 hover:text-white transition-colors">
+                Cookies
+              </Link>
               <Link href="/privacy" className="text-[9px] font-bold uppercase tracking-widest text-zinc-600 hover:text-white transition-colors">
                 Privacy
               </Link>
