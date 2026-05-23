@@ -113,17 +113,6 @@ export default function Navbar() {
                 <Search className="w-4 h-4" />
               </button>
 
-              {/* Theme toggle */}
-              <button onClick={toggleTheme} className={iconBtnCls} aria-label="Ubah tema">
-                {!mounted ? (
-                  <div className="w-4 h-4" />
-                ) : theme === "dark" ? (
-                  <Sun className="w-4 h-4 text-amber-400" />
-                ) : (
-                  <Moon className="w-4 h-4 text-indigo-400" />
-                )}
-              </button>
-
               {/* Dashboard — desktop */}
               <Link
                 href="/dashboard"
