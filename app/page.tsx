@@ -7,17 +7,17 @@ import {
   Zap, Dna, Telescope, Sparkles, Cpu, Atom, ChevronRight,
   ShieldCheck, Users, Layers, GraduationCap, Presentation, Puzzle
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 const CATEGORIES = [
-  { name: "Fisika", icon: <Atom className="w-5 h-5" />, color: "from-blue-600 to-cyan-400", bg: "bg-blue-600/10 border-blue-500/20 group-hover:border-blue-500/40", slug: "fisika", count: 12 },
-  { name: "Kimia", icon: <Beaker className="w-5 h-5" />, color: "from-purple-600 to-pink-500", bg: "bg-purple-600/10 border-purple-500/20 group-hover:border-purple-500/40", slug: "kimia", count: 8 },
-  { name: "Matematika", icon: <Calculator className="w-5 h-5" />, color: "from-emerald-600 to-teal-400", bg: "bg-emerald-600/10 border-emerald-500/20 group-hover:border-emerald-500/40", slug: "matematika", count: 15 },
-  { name: "Biologi", icon: <Dna className="w-5 h-5" />, color: "from-green-600 to-lime-400", bg: "bg-green-600/10 border-green-500/20 group-hover:border-green-500/40", slug: "biologi", count: 10 },
-  { name: "Ilmu Bumi", icon: <Globe className="w-5 h-5" />, color: "from-amber-600 to-orange-400", bg: "bg-amber-600/10 border-amber-500/20 group-hover:border-amber-500/40", slug: "bumi", count: 7 },
-  { name: "Astronomi", icon: <Telescope className="w-5 h-5" />, color: "from-indigo-600 to-blue-500", bg: "bg-indigo-600/10 border-indigo-500/20 group-hover:border-indigo-500/40", slug: "astronomi", count: 6 },
-  { name: "Teknologi", icon: <Cpu className="w-5 h-5" />, color: "from-rose-600 to-red-400", bg: "bg-rose-600/10 border-rose-500/20 group-hover:border-rose-500/40", slug: "teknologi", count: 5 },
-  { name: "Seni", icon: <Layers className="w-5 h-5" />, color: "from-fuchsia-600 to-purple-400", bg: "bg-fuchsia-600/10 border-fuchsia-500/20 group-hover:border-fuchsia-500/40", slug: "seni", count: 4 },
+  { name: "Fisika",     icon: <Atom       className="w-5 h-5" />, color: "from-blue-600 to-cyan-400",     bg: "bg-blue-600/10 border-blue-500/20 group-hover:border-blue-500/40",       slug: "fisika",     count: 52 },
+  { name: "Kimia",      icon: <Beaker     className="w-5 h-5" />, color: "from-purple-600 to-pink-500",   bg: "bg-purple-600/10 border-purple-500/20 group-hover:border-purple-500/40",   slug: "kimia",      count: 20 },
+  { name: "Matematika", icon: <Calculator className="w-5 h-5" />, color: "from-emerald-600 to-teal-400",  bg: "bg-emerald-600/10 border-emerald-500/20 group-hover:border-emerald-500/40", slug: "matematika", count: 25 },
+  { name: "Biologi",    icon: <Dna        className="w-5 h-5" />, color: "from-green-600 to-lime-400",    bg: "bg-green-600/10 border-green-500/20 group-hover:border-green-500/40",       slug: "biologi",    count: 22 },
+  { name: "Ilmu Bumi",  icon: <Globe      className="w-5 h-5" />, color: "from-amber-600 to-orange-400",  bg: "bg-amber-600/10 border-amber-500/20 group-hover:border-amber-500/40",       slug: "bumi",       count: 10 },
+  { name: "Astronomi",  icon: <Telescope  className="w-5 h-5" />, color: "from-indigo-600 to-blue-500",   bg: "bg-indigo-600/10 border-indigo-500/20 group-hover:border-indigo-500/40",   slug: "astronomi",  count: 10 },
+  { name: "Teknologi",  icon: <Cpu        className="w-5 h-5" />, color: "from-rose-600 to-red-400",      bg: "bg-rose-600/10 border-rose-500/20 group-hover:border-rose-500/40",         slug: "teknologi",  count: 15 },
+  { name: "Seni",       icon: <Layers     className="w-5 h-5" />, color: "from-fuchsia-600 to-purple-400",bg: "bg-fuchsia-600/10 border-fuchsia-500/20 group-hover:border-fuchsia-500/40", slug: "seni",       count: 10 },
 ];
 
 const FEATURED = [
@@ -33,14 +33,14 @@ const STATS = [
   { label: "Mata Pelajaran", value: "10+", color: "text-amber-400" },
 ];
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.08 } },
-} as const;
-const itemVariants = {
+};
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
-} as const;
+};
 
 export default function Home() {
   return (
@@ -371,10 +371,7 @@ export default function Home() {
                 {/* Footer */}
                 <div className="relative z-10 pt-4 mt-5 border-t border-white/[0.06] flex items-center justify-between">
                   <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{card.footerLabel}</span>
-                  <Link
-                    href={i === 2 ? "/developers" : "/login"}
-                    className={`flex items-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-widest ${card.linkColor} hover:text-white transition-colors group/btn`}
-                  >
+                  <Link href="/login" className={`flex items-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-widest ${card.linkColor} hover:text-white transition-colors group/btn`}>
                     {card.linkLabel}
                     <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                   </Link>
