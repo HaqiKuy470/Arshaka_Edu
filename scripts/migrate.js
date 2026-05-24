@@ -16,6 +16,7 @@ async function runMigrations() {
   const pool = new Pool({
     connectionString: connectionString,
     max: 1,
+    connectionTimeoutMillis: 5000,
   });
   const db = drizzle(pool);
 
