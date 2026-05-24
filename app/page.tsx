@@ -292,6 +292,7 @@ export default function Home() {
                 hoverBorder: "hover:border-indigo-500/25",
                 label: "Untuk Siswa",
                 sub: "Eksplorasi & Gamifikasi",
+                href: "/simulasi",
                 linkColor: "text-indigo-400",
                 linkLabel: "Mulai Sekarang",
                 footerLabel: "Siap Belajar?",
@@ -309,6 +310,7 @@ export default function Home() {
                 hoverBorder: "hover:border-purple-500/25",
                 label: "Untuk Guru",
                 sub: "Manajemen & Evaluasi",
+                href: "/login",
                 linkColor: "text-purple-400",
                 linkLabel: "Akses Portal",
                 footerLabel: "Portal Guru",
@@ -326,6 +328,7 @@ export default function Home() {
                 hoverBorder: "hover:border-emerald-500/25",
                 label: "Untuk Pengembang",
                 sub: "Integrasi & Ekstensi",
+                href: "/developers",
                 linkColor: "text-emerald-400",
                 linkLabel: "Buka Docs",
                 footerLabel: "Developer Hub",
@@ -371,7 +374,7 @@ export default function Home() {
                 {/* Footer */}
                 <div className="relative z-10 pt-4 mt-5 border-t border-white/[0.06] flex items-center justify-between">
                   <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{card.footerLabel}</span>
-                  <Link href="/login" className={`flex items-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-widest ${card.linkColor} hover:text-white transition-colors group/btn`}>
+                  <Link href={card.href} className={`flex items-center gap-1 text-[10px] sm:text-xs font-black uppercase tracking-widest ${card.linkColor} hover:text-white transition-colors group/btn`}>
                     {card.linkLabel}
                     <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                   </Link>
