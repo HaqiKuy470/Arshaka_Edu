@@ -34,7 +34,7 @@ function CodeBlock({ code, lang = "bash" }: { code: string; lang?: string }) {
   );
 }
 
-function Step({ num, icon, title, children }: { num: string; icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function Step({ num, icon, title, children }: { num: string; icon: React.ReactNode; title: string; id?: string; children: React.ReactNode }) {
   return (
     <div className="relative flex gap-5 sm:gap-6">
       {/* Line connector */}
