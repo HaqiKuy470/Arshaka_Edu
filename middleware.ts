@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+const CANONICAL_HOST = 'edu.heyhaqi.my.id';
+
 // Route yang membutuhkan login
 const PROTECTED = ['/dashboard', '/admin'];
 // Route yang hanya untuk tamu (redirect ke dashboard jika sudah login)
@@ -9,6 +11,14 @@ const AUTH_ROUTES = ['/login', '/register'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get('host') || '';
+
+  if (host && host !== CANONICAL_HOST) {
+    const url = new URL(request.url);
+    url.protocol = 'https:';
+    url.host = CANONICAL_HOST;
+    return NextResponse.redirect(url, 301);
+  }
 
   const proto = request.headers.get('x-forwarded-proto') || (request.nextUrl.protocol === 'https:' ? 'https' : 'http');
   const isHttps = proto === 'https';
